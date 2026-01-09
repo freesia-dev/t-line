@@ -12,80 +12,82 @@ interface PrintTicketProps {
 const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicketProps) => {
   const hasTriggeredPrint = useRef(false);
   const formattedNumber = formatQueueNumber(type, number);
-  const visitTime = new Date().toLocaleString('id-ID', {
+  
+  const now = new Date();
+  const visitDate = now.toLocaleDateString('id-ID', {
     weekday: 'long',
-    year: 'numeric',
-    month: 'long',
     day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  const visitTime = now.toLocaleTimeString('id-ID', {
     hour: '2-digit',
     minute: '2-digit',
   });
 
   const getFontSize = () => {
     switch (config.fontSize) {
-      case 'small': return '36pt';
-      case 'medium': return '42pt';
+      case 'small': return '32pt';
+      case 'medium': return '40pt';
       case 'large': return '48pt';
-      default: return '48pt';
+      default: return '40pt';
     }
   };
 
   useEffect(() => {
     if (!hasTriggeredPrint.current) {
       hasTriggeredPrint.current = true;
-      // Small delay to ensure content is rendered
       setTimeout(() => {
         window.print();
         if (onPrinted) {
           onPrinted();
         }
-      }, 100);
+      }, 150);
     }
   }, [onPrinted]);
 
   return (
     <div className="print-only print-ticket">
+      {/* Header - Bank Info */}
       {config.showLogo && (
-        <div className="print-ticket-header" style={{ marginBottom: '3mm' }}>
-          <div style={{ fontSize: '12pt', fontWeight: 800 }}>{config.branchType}</div>
+        <div className="print-header-section">
+          <div className="print-bank-type">{config.branchType}</div>
         </div>
       )}
       
-      <div className="print-ticket-subheader">
-        {config.bankName}
-      </div>
-      
-      <div className="print-ticket-subheader" style={{ fontWeight: 600 }}>
-        {config.branchName}
+      <div className="print-bank-name">{config.bankName}</div>
+      <div className="print-branch-name">{config.branchName}</div>
+
+      {/* Separator */}
+      <div className="print-separator" />
+
+      {/* Date & Time */}
+      <div className="print-datetime-section">
+        <div className="print-date">{visitDate}</div>
+        <div className="print-time">{visitTime}</div>
       </div>
 
-      <div style={{ 
-        borderTop: '1px dashed #000', 
-        borderBottom: '1px dashed #000',
-        margin: '3mm 0',
-        padding: '2mm 0'
-      }}>
-        <div className="print-ticket-time">
-          {visitTime}
-        </div>
-      </div>
+      {/* Separator */}
+      <div className="print-separator" />
 
-      <div style={{ margin: '4mm 0' }}>
-        <div style={{ fontSize: '10pt', fontWeight: 500 }}>
+      {/* Queue Number Section */}
+      <div className="print-queue-section">
+        <div className="print-queue-type">
           {type === 'CS' ? 'CUSTOMER SERVICE' : 'TELLER'}
         </div>
-        <div 
-          className="print-ticket-number"
-          style={{ fontSize: getFontSize() }}
-        >
+        <div className="print-queue-number" style={{ fontSize: getFontSize() }}>
           {formattedNumber}
         </div>
-        <div style={{ fontSize: '9pt' }}>
+        <div className="print-remaining">
           Sisa antrian: <strong>{remaining}</strong> orang
         </div>
       </div>
 
-      <div className="print-ticket-footer">
+      {/* Separator */}
+      <div className="print-separator" />
+
+      {/* Footer */}
+      <div className="print-footer">
         {config.footerMessage}
       </div>
     </div>
