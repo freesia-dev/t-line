@@ -135,6 +135,12 @@
   }
 }
 
+/* Hide print content on screen */
+.print-only {
+  display: none;
+  visibility: hidden;
+}
+
 /* Print styles for 80mm thermal printer */
 @media print {
   @page {
@@ -158,36 +164,42 @@
     color: black !important;
   }
 
-  .no-print,
-  .no-print * {
+  /* Hide React root and other elements */
+  #root {
     display: none !important;
-    visibility: hidden !important;
   }
 
+  /* Show print content */
   .print-only {
     display: block !important;
     visibility: visible !important;
   }
 
+  #print-ticket-container {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+  }
+
   .print-ticket {
+    display: block !important;
     width: 76mm !important;
     max-width: 76mm !important;
-    padding: 2mm 2mm 4mm 2mm !important;
+    padding: 3mm !important;
     margin: 0 auto !important;
     text-align: center !important;
     background: white !important;
     color: black !important;
-    page-break-after: always;
   }
 
   /* Header Section */
   .print-header-section {
-    margin-bottom: 1mm;
+    margin-bottom: 2mm;
   }
 
   .print-bank-type {
-    font-size: 11pt !important;
-    font-weight: 700 !important;
+    font-size: 12pt !important;
+    font-weight: 800 !important;
     letter-spacing: 0.5px;
     margin-bottom: 1mm;
   }
@@ -195,85 +207,75 @@
   .print-bank-name {
     font-size: 8pt !important;
     font-weight: 400 !important;
-    line-height: 1.2;
-    margin-bottom: 0.5mm;
+    line-height: 1.3;
+    margin-bottom: 1mm;
   }
 
   .print-branch-name {
-    font-size: 9pt !important;
-    font-weight: 600 !important;
-    margin-bottom: 1mm;
+    font-size: 10pt !important;
+    font-weight: 700 !important;
+    margin-bottom: 2mm;
   }
 
   /* Separator Line */
   .print-separator {
+    border: none !important;
     border-top: 1px dashed #000 !important;
-    margin: 2mm 0 !important;
+    margin: 3mm 0 !important;
     height: 0 !important;
   }
 
   /* DateTime Section */
   .print-datetime-section {
-    padding: 1mm 0;
+    padding: 2mm 0;
   }
 
   .print-date {
-    font-size: 9pt !important;
+    font-size: 10pt !important;
     font-weight: 400 !important;
-    margin-bottom: 0.5mm;
+    margin-bottom: 1mm;
   }
 
   .print-time {
-    font-size: 10pt !important;
-    font-weight: 600 !important;
+    font-size: 12pt !important;
+    font-weight: 700 !important;
   }
 
   /* Queue Section */
   .print-queue-section {
-    padding: 2mm 0;
+    padding: 3mm 0;
   }
 
   .print-queue-type {
-    font-size: 10pt !important;
-    font-weight: 600 !important;
+    font-size: 11pt !important;
+    font-weight: 700 !important;
     letter-spacing: 1px;
-    margin-bottom: 1mm;
+    margin-bottom: 2mm;
   }
 
   .print-queue-number {
-    font-size: 40pt !important;
+    font-size: 48pt !important;
     font-weight: 900 !important;
     line-height: 1 !important;
-    margin: 2mm 0 !important;
-    letter-spacing: 2px;
+    margin: 4mm 0 !important;
+    letter-spacing: 3px;
   }
 
   .print-remaining {
-    font-size: 9pt !important;
+    font-size: 10pt !important;
     font-weight: 400 !important;
+    margin-top: 2mm;
   }
 
   .print-remaining strong {
-    font-weight: 700 !important;
+    font-weight: 800 !important;
   }
 
   /* Footer */
   .print-footer {
-    font-size: 8pt !important;
+    font-size: 9pt !important;
     font-weight: 400 !important;
-    line-height: 1.3 !important;
-    padding-top: 1mm;
-    font-style: italic;
-  }
-}
-
-/* Hide print content on screen */
-.print-only {
-  display: none !important;
-}
-
-@media screen {
-  .print-only {
-    display: none !important;
+    line-height: 1.4 !important;
+    padding-top: 2mm;
   }
 }
