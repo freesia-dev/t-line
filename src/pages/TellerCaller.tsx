@@ -6,6 +6,7 @@ import { getQueueState, saveQueueState, formatQueueNumber, QueueState } from '@/
 import { toast } from '@/hooks/use-toast';
 import { PhoneCall, Users, CheckCircle } from 'lucide-react';
 import logoBank from '@/assets/logo-bankaltimtara.png';
+import { playDingSound, announceQueue } from '@/lib/audioUtils';
 
 const TellerCaller = () => {
   const [queueState, setQueueState] = useState<QueueState>(getQueueState());
@@ -43,9 +44,14 @@ const TellerCaller = () => {
     setQueueState(state);
     setIsAnimating(true);
 
+    const queueNumber = formatQueueNumber('TELLER', state.tellerServing);
+    
+    // Play sound and announce
+    announceQueue(queueNumber, 'Teller');
+
     toast({
       title: "Memanggil Antrian",
-      description: `Nomor ${formatQueueNumber('TELLER', state.tellerServing)} silakan menuju Teller`,
+      description: `Nomor ${queueNumber} silakan menuju Teller`,
     });
 
     setTimeout(() => setIsAnimating(false), 1000);

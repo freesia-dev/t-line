@@ -8,6 +8,7 @@ import Konfigurasi from "./pages/Konfigurasi";
 import About from "./pages/About";
 import CSCaller from "./pages/CSCaller";
 import TellerCaller from "./pages/TellerCaller";
+import QueueDisplay from "./pages/QueueDisplay";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/konfigurasi" element={<Konfigurasi />} />
           <Route path="/cs-caller" element={<CSCaller />} />
           <Route path="/teller-caller" element={<TellerCaller />} />
+          <Route path="/display" element={<QueueDisplay />} />
           <Route path="/about" element={<About />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
