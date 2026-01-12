@@ -79,6 +79,9 @@ const QueueDisplay = () => {
     fast: '10s',
   };
 
+  // Bankaltimtara Corporate Colors
+  // Blue: #003D7A (corporate blue), Gold: #C5A028 / #D4AF37
+  
   // Queue Card Component
   const QueueCard = ({ type, number, flash, waiting, total }: { 
     type: 'TELLER' | 'CS'; 
@@ -88,33 +91,33 @@ const QueueDisplay = () => {
     total: number;
   }) => {
     const isTeller = type === 'TELLER';
+    
+    // Teller: Gold theme, CS: Blue theme
     const bgClass = flash 
-      ? (isTeller ? 'bg-gradient-to-br from-green-500 to-green-600' : 'bg-gradient-to-br from-blue-500 to-blue-600')
-      : (isTeller ? 'bg-gradient-to-br from-emerald-600 to-emerald-700' : 'bg-gradient-to-br from-blue-600 to-blue-700');
-    const textClass = isTeller ? 'text-emerald-100' : 'text-blue-100';
-    const subTextClass = isTeller ? 'text-emerald-200' : 'text-blue-200';
+      ? (isTeller ? 'bg-gradient-to-br from-[#D4AF37] to-[#B8960C]' : 'bg-gradient-to-br from-[#0052A3] to-[#003D7A]')
+      : (isTeller ? 'bg-gradient-to-br from-[#C5A028] to-[#A68A1E]' : 'bg-gradient-to-br from-[#003D7A] to-[#002B57]');
 
     return (
       <motion.div
-        className={`rounded-3xl p-6 md:p-8 ${bgClass} shadow-2xl h-full flex flex-col justify-center`}
+        className={`rounded-3xl p-6 md:p-8 ${bgClass} shadow-2xl h-full flex flex-col justify-center border-4 ${isTeller ? 'border-[#D4AF37]/30' : 'border-white/20'}`}
         animate={flash ? { scale: [1, 1.02, 1] } : {}}
         transition={{ duration: 0.5, repeat: flash ? Infinity : 0 }}
       >
         <div className="text-center">
-          <h2 className={`text-2xl md:text-3xl font-bold ${textClass} mb-2`}>
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 drop-shadow-lg">
             {isTeller ? 'TELLER' : 'CUSTOMER SERVICE'}
           </h2>
-          <p className={`text-lg ${subTextClass} mb-4`}>Sedang Dilayani</p>
-          <div className="text-[4rem] sm:text-[5rem] md:text-[6rem] lg:text-[8rem] xl:text-[10rem] font-black text-white leading-none">
+          <p className={`text-lg mb-4 ${isTeller ? 'text-amber-100' : 'text-blue-100'}`}>Sedang Dilayani</p>
+          <div className="text-[4rem] sm:text-[5rem] md:text-[6rem] lg:text-[8rem] xl:text-[10rem] font-black text-white leading-none drop-shadow-xl">
             {number}
           </div>
           <div className="mt-4 flex justify-center gap-6">
             <div className="text-center">
-              <p className={`text-sm ${subTextClass}`}>Menunggu</p>
+              <p className={`text-sm ${isTeller ? 'text-amber-100' : 'text-blue-100'}`}>Menunggu</p>
               <p className="text-2xl md:text-3xl font-bold text-white">{waiting}</p>
             </div>
             <div className="text-center">
-              <p className={`text-sm ${subTextClass}`}>Total</p>
+              <p className={`text-sm ${isTeller ? 'text-amber-100' : 'text-blue-100'}`}>Total</p>
               <p className="text-2xl md:text-3xl font-bold text-white">{total}</p>
             </div>
           </div>
@@ -127,8 +130,8 @@ const QueueDisplay = () => {
   const MediaContent = () => {
     if (!tvConfig.showMedia || !tvConfig.mediaUrl) {
       return (
-        <div className="w-full h-full bg-slate-800 rounded-2xl flex items-center justify-center">
-          <p className="text-slate-500 text-lg">Tidak ada media</p>
+        <div className="w-full h-full bg-[#002B57] rounded-2xl flex items-center justify-center border-2 border-[#D4AF37]/30">
+          <p className="text-[#D4AF37]/50 text-lg">Tidak ada media</p>
         </div>
       );
     }
@@ -257,26 +260,26 @@ const QueueDisplay = () => {
   };
 
   return (
-    <div className="h-screen w-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-6 flex flex-col overflow-hidden">
+    <div className="h-screen w-screen bg-gradient-to-br from-[#001F3F] via-[#003D7A] to-[#002B57] p-4 md:p-6 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 bg-white/10 backdrop-blur-sm rounded-2xl p-4">
         <div className="flex items-center gap-4">
           <img src={logoBank} alt="Logo" className="h-12 md:h-16" />
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-white">{printConfig.bankName}</h1>
-            <p className="text-sm md:text-base text-slate-300">{printConfig.branchName}</p>
+            <p className="text-sm md:text-base text-[#D4AF37]">{printConfig.branchName}</p>
           </div>
         </div>
         <div className="text-right flex items-center gap-4">
           <div>
-            <p className="text-3xl md:text-5xl font-bold text-white">{time}</p>
-            <p className="text-sm text-slate-300">{currentDate}</p>
+            <p className="text-3xl md:text-5xl font-bold text-[#D4AF37]">{time}</p>
+            <p className="text-sm text-white/80">{currentDate}</p>
           </div>
           <div className="flex flex-col gap-2">
             <Button
               variant="ghost"
               size="icon"
-              className="text-slate-300 hover:text-white"
+              className="text-white/80 hover:text-[#D4AF37] hover:bg-white/10"
               onClick={() => setSoundEnabled(!soundEnabled)}
             >
               {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
@@ -284,7 +287,7 @@ const QueueDisplay = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="text-slate-300 hover:text-white"
+              className="text-white/80 hover:text-[#D4AF37] hover:bg-white/10"
               onClick={toggleFullscreen}
             >
               {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
@@ -298,12 +301,12 @@ const QueueDisplay = () => {
         {renderLayout()}
       </div>
 
-      {/* Running Text */}
+      {/* Running Text - Gold theme */}
       {tvConfig.showRunningText && tvConfig.runningText && (
-        <div className="mt-6 bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl overflow-hidden">
+        <div className="mt-6 bg-gradient-to-r from-[#C5A028] via-[#D4AF37] to-[#C5A028] rounded-xl overflow-hidden border-2 border-[#D4AF37]/50">
           <div className="py-3 px-4">
             <motion.div
-              className="whitespace-nowrap text-white text-lg font-medium"
+              className="whitespace-nowrap text-[#001F3F] text-lg font-bold"
               animate={{ x: ['100%', '-100%'] }}
               transition={{
                 duration: parseInt(runningTextSpeed[tvConfig.runningTextSpeed]),
