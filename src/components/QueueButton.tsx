@@ -14,10 +14,10 @@ const QueueButton = ({ type, currentQueue, displayConfig, onClick }: QueueButton
   
   const getSizeClasses = () => {
     switch (displayConfig.buttonSize) {
-      case 'medium': return 'px-8 py-6 text-xl';
-      case 'large': return 'px-12 py-10 text-2xl';
-      case 'xlarge': return 'px-16 py-14 text-3xl';
-      default: return 'px-12 py-10 text-2xl';
+      case 'medium': return 'w-64 h-48 text-xl';
+      case 'large': return 'w-80 h-60 text-2xl';
+      case 'xlarge': return 'w-96 h-72 text-3xl';
+      default: return 'w-80 h-60 text-2xl';
     }
   };
 

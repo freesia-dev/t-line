@@ -163,10 +163,27 @@ const Konfigurasi = () => {
                 <CardHeader>
                   <CardTitle>Pengaturan Cetak</CardTitle>
                   <CardDescription>
-                    Kustomisasi format tiket antrian (lebar 80mm)
+                    Kustomisasi format tiket antrian
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label>Ukuran Kertas</Label>
+                    <Select
+                      value={printConfig.paperSize}
+                      onValueChange={(value: '58mm' | '80mm') =>
+                        setPrintConfig({ ...printConfig, paperSize: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="58mm">58mm (Kecil)</SelectItem>
+                        <SelectItem value="80mm">80mm (Standar)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="flex items-center justify-between">
                     <div>
                       <Label htmlFor="showLogo">Tampilkan Logo</Label>

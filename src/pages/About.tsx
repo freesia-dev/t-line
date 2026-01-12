@@ -121,10 +121,10 @@ const About = () => {
               <CardContent>
                 <div className="flex flex-col items-center gap-6 text-center">
                   <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-3xl font-bold text-white">
-                    H
+                    HF
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-foreground">Haris F</h3>
+                    <h3 className="text-xl font-bold text-foreground">Haris Fadilah</h3>
                     <p className="text-muted-foreground">Developer</p>
                   </div>
                   <div className="flex gap-4">
