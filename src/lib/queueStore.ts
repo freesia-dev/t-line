@@ -15,6 +15,7 @@ export interface PrintConfig {
   branchType: string;
   footerMessage: string;
   fontSize: 'small' | 'medium' | 'large';
+  paperSize: '58mm' | '80mm';
 }
 
 export interface DisplayConfig {
@@ -38,6 +39,7 @@ const DEFAULT_PRINT_CONFIG: PrintConfig = {
   branchType: 'Bankaltimtara',
   footerMessage: 'Jika nomor anda terlewat mohon untuk mengambil nomor kembali',
   fontSize: 'large',
+  paperSize: '80mm',
 };
 
 const DEFAULT_DISPLAY_CONFIG: DisplayConfig = {

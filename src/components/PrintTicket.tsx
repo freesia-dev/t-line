@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { PrintConfig, formatQueueNumber } from '@/lib/queueStore';
+import logoBank from '@/assets/logo-bankaltimtara.png';
 
 interface PrintTicketProps {
   type: 'CS' | 'TELLER';
@@ -34,13 +35,15 @@ const PrintTicketContent = ({ type, number, config, remaining }: Omit<PrintTicke
     }
   };
 
+  const paperClass = config.paperSize === '58mm' ? 'print-ticket-58mm' : 'print-ticket-80mm';
+
   return (
-    <div id="print-ticket-container" className="print-only">
-      <div className="print-ticket">
-        {/* Header - Bank Info */}
+    <div id="print-ticket-container" className="print-only" data-paper-size={config.paperSize}>
+      <div className={`print-ticket ${paperClass}`}>
+        {/* Header - Logo & Bank Info */}
         {config.showLogo && (
           <div className="print-header-section">
-            <div className="print-bank-type">{config.branchType}</div>
+            <img src={logoBank} alt="Logo Bank" className="print-logo" />
           </div>
         )}
         
