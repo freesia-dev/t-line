@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LayoutPreview from '@/components/DisplayLayoutPreview';
+import MediaUploader from '@/components/MediaUploader';
 import {
   getPrintConfig,
   savePrintConfig,
@@ -230,7 +231,17 @@ const Konfigurasi = () => {
                     {tvConfig.showMedia && (
                       <>
                         <div className="space-y-2">
-                          <Label>Tipe Media</Label>
+                          <Label>Pilih Media</Label>
+                          <MediaUploader
+                            selectedUrl={tvConfig.mediaUrl}
+                            onSelect={(url, type) =>
+                              setTVConfig({ ...tvConfig, mediaUrl: url, mediaType: type })
+                            }
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Tipe Media Terpilih</Label>
                           <Select
                             value={tvConfig.mediaType}
                             onValueChange={(value: 'image' | 'video') =>
@@ -248,7 +259,7 @@ const Konfigurasi = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="mediaUrl">URL Media</Label>
+                          <Label htmlFor="mediaUrl">Atau masukkan URL Media</Label>
                           <Input
                             id="mediaUrl"
                             value={tvConfig.mediaUrl}
@@ -257,9 +268,6 @@ const Konfigurasi = () => {
                             }
                             placeholder="https://example.com/poster.jpg"
                           />
-                          <p className="text-xs text-muted-foreground">
-                            Masukkan URL gambar atau video yang akan ditampilkan
-                          </p>
                         </div>
                       </>
                     )}

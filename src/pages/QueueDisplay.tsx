@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { getQueueState, formatQueueNumber, getPrintConfig, getTVDisplayConfig, QueueState, PrintConfig, TVDisplayConfig } from '@/lib/queueStore';
 import { announceQueue } from '@/lib/audioUtils';
 import logoBank from '@/assets/logo-bankaltimtara.png';
@@ -105,18 +105,9 @@ const QueueDisplay = () => {
             {isTeller ? 'TELLER' : 'CUSTOMER SERVICE'}
           </h2>
           <p className={`text-lg ${subTextClass} mb-4`}>Sedang Dilayani</p>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={number}
-              initial={{ scale: 0.5, opacity: 0, rotateX: -90 }}
-              animate={{ scale: 1, opacity: 1, rotateX: 0 }}
-              exit={{ scale: 0.5, opacity: 0, rotateX: 90 }}
-              transition={{ type: 'spring', duration: 0.5 }}
-              className="text-[5rem] md:text-[8rem] lg:text-[10rem] font-black text-white leading-none"
-            >
-              {number}
-            </motion.div>
-          </AnimatePresence>
+          <div className="text-[4rem] sm:text-[5rem] md:text-[6rem] lg:text-[8rem] xl:text-[10rem] font-black text-white leading-none">
+            {number}
+          </div>
           <div className="mt-4 flex justify-center gap-6">
             <div className="text-center">
               <p className={`text-sm ${subTextClass}`}>Menunggu</p>
@@ -266,7 +257,7 @@ const QueueDisplay = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 flex flex-col">
+    <div className="h-screen w-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-6 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
@@ -302,8 +293,8 @@ const QueueDisplay = () => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 min-h-0">
+      {/* Main Content - responsive sizing */}
+      <div className="flex-1 min-h-0 overflow-hidden">
         {renderLayout()}
       </div>
 
