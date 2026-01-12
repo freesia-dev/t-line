@@ -2,35 +2,40 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getQueueState, saveQueueState, formatQueueNumber, QueueState } from '@/lib/queueStore';
+import { fetchQueueState, callNextCS, formatQueueNumber, subscribeToQueueState, QueueState } from '@/lib/supabaseQueueStore';
 import { toast } from '@/hooks/use-toast';
-import { PhoneCall, Users, CheckCircle } from 'lucide-react';
+import { PhoneCall, Users, CheckCircle, Loader2 } from 'lucide-react';
 import logoBank from '@/assets/logo-bankaltimtara.png';
-import { playDingSound, announceQueue } from '@/lib/audioUtils';
 
 const CSCaller = () => {
-  const [queueState, setQueueState] = useState<QueueState>(getQueueState());
+  const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCallLoading, setIsCallLoading] = useState(false);
 
   useEffect(() => {
-    const handleFocus = () => {
-      setQueueState(getQueueState());
-    };
-    window.addEventListener('focus', handleFocus);
-    
-    const interval = setInterval(() => {
-      setQueueState(getQueueState());
-    }, 2000);
+    // Initial fetch
+    fetchQueueState().then((state) => {
+      setQueueState(state);
+      setIsLoading(false);
+    });
 
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      clearInterval(interval);
-    };
+    // Subscribe to real-time updates
+    const unsubscribe = subscribeToQueueState((newState) => {
+      setQueueState(newState);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const handleCallNext = () => {
-    const state = getQueueState();
-    if (state.csServing >= state.csQueue) {
+  const handleCallNext = async () => {
+    if (!queueState) return;
+    
+    setIsCallLoading(true);
+    const result = await callNextCS();
+    setIsCallLoading(false);
+
+    if (!result) {
       toast({
         title: "Tidak ada antrian",
         description: "Semua antrian sudah dipanggil",
@@ -39,16 +44,10 @@ const CSCaller = () => {
       return;
     }
 
-    state.csServing += 1;
-    saveQueueState(state);
-    setQueueState(state);
     setIsAnimating(true);
+    const queueNumber = formatQueueNumber('CS', result.number);
 
-    const queueNumber = formatQueueNumber('CS', state.csServing);
-    
-    // Play sound and announce
-    announceQueue(queueNumber, 'Customer Service');
-
+    // NO SOUND HERE - Sound only plays on /display
     toast({
       title: "Memanggil Antrian",
       description: `Nomor ${queueNumber} silakan menuju Customer Service`,
@@ -57,8 +56,16 @@ const CSCaller = () => {
     setTimeout(() => setIsAnimating(false), 1000);
   };
 
-  const waiting = Math.max(0, queueState.csQueue - queueState.csServing);
-  const currentServing = queueState.csServing > 0 ? formatQueueNumber('CS', queueState.csServing) : '---';
+  if (isLoading || !queueState) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 flex items-center justify-center">
+        <Loader2 className="h-12 w-12 text-white animate-spin" />
+      </div>
+    );
+  }
+
+  const waiting = Math.max(0, queueState.cs_queue - queueState.cs_serving);
+  const currentServing = queueState.cs_serving > 0 ? formatQueueNumber('CS', queueState.cs_serving) : '---';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 p-4 md:p-8">
@@ -109,7 +116,7 @@ const CSCaller = () => {
             <CardContent className="p-4 text-center">
               <CheckCircle className="h-8 w-8 text-green-400 mx-auto mb-2" />
               <p className="text-blue-200 text-sm">Total Antrian</p>
-              <p className="text-3xl font-bold text-white">{queueState.csQueue}</p>
+              <p className="text-3xl font-bold text-white">{queueState.cs_queue}</p>
             </CardContent>
           </Card>
         </div>
@@ -121,10 +128,14 @@ const CSCaller = () => {
         >
           <Button
             onClick={handleCallNext}
-            disabled={waiting === 0}
+            disabled={waiting === 0 || isCallLoading}
             className="w-full h-20 text-xl font-bold bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-500 disabled:to-gray-600"
           >
-            <PhoneCall className="h-8 w-8 mr-3" />
+            {isCallLoading ? (
+              <Loader2 className="h-8 w-8 mr-3 animate-spin" />
+            ) : (
+              <PhoneCall className="h-8 w-8 mr-3" />
+            )}
             Panggil Berikutnya
           </Button>
         </motion.div>

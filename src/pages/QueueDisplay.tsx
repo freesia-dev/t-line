@@ -1,50 +1,95 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { getQueueState, formatQueueNumber, getPrintConfig, getTVDisplayConfig, QueueState, PrintConfig, TVDisplayConfig } from '@/lib/queueStore';
+import { fetchQueueState, formatQueueNumber, subscribeToQueueState, QueueState } from '@/lib/supabaseQueueStore';
+import { getPrintConfig, getTVDisplayConfig, PrintConfig, TVDisplayConfig } from '@/lib/queueStore';
 import { announceQueue } from '@/lib/audioUtils';
 import logoBank from '@/assets/logo-bankaltimtara.png';
-import { Volume2, VolumeX, Maximize, Minimize } from 'lucide-react';
+import { Volume2, VolumeX, Maximize, Minimize, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const QueueDisplay = () => {
-  const [queueState, setQueueState] = useState<QueueState>(getQueueState());
+  const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
   const [tvConfig, setTVConfig] = useState<TVDisplayConfig>(getTVDisplayConfig());
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [lastCSServing, setLastCSServing] = useState(queueState.csServing);
-  const [lastTellerServing, setLastTellerServing] = useState(queueState.tellerServing);
   const [flashCS, setFlashCS] = useState(false);
   const [flashTeller, setFlashTeller] = useState(false);
   const [time, setTime] = useState(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }));
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Refs to track last called to avoid duplicate announcements
+  const lastCalledRef = useRef<{ type: string | null; number: number | null; at: string | null }>({
+    type: null,
+    number: null,
+    at: null,
+  });
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const newState = getQueueState();
+    // Initial fetch
+    fetchQueueState().then((state) => {
+      if (state) {
+        setQueueState(state);
+        // Initialize lastCalledRef with current state to avoid announcing on load
+        lastCalledRef.current = {
+          type: state.last_called_type,
+          number: state.last_called_number,
+          at: state.last_called_at,
+        };
+      }
+      setIsLoading(false);
+    });
+
+    // Subscribe to real-time updates - SOUND PLAYS HERE
+    const unsubscribe = subscribeToQueueState((newState) => {
       setQueueState(newState);
+      
+      // Check if there's a new call (sound should play only on display)
+      if (
+        newState.last_called_at && 
+        newState.last_called_at !== lastCalledRef.current.at &&
+        newState.last_called_type &&
+        newState.last_called_number
+      ) {
+        // Play sound and announce
+        if (soundEnabled) {
+          const queueNumber = formatQueueNumber(
+            newState.last_called_type as 'CS' | 'TELLER',
+            newState.last_called_number
+          );
+          const destination = newState.last_called_type === 'CS' ? 'Customer Service' : 'Teller';
+          announceQueue(queueNumber, destination);
+        }
+        
+        // Flash the appropriate card
+        if (newState.last_called_type === 'CS') {
+          setFlashCS(true);
+          setTimeout(() => setFlashCS(false), 3000);
+        } else if (newState.last_called_type === 'TELLER') {
+          setFlashTeller(true);
+          setTimeout(() => setFlashTeller(false), 3000);
+        }
+        
+        // Update ref
+        lastCalledRef.current = {
+          type: newState.last_called_type,
+          number: newState.last_called_number,
+          at: newState.last_called_at,
+        };
+      }
+    });
+
+    // Update local configs periodically
+    const configInterval = setInterval(() => {
       setPrintConfig(getPrintConfig());
       setTVConfig(getTVDisplayConfig());
-      
-      if (newState.csServing > lastCSServing && soundEnabled) {
-        const queueNumber = formatQueueNumber('CS', newState.csServing);
-        announceQueue(queueNumber, 'Customer Service');
-        setFlashCS(true);
-        setTimeout(() => setFlashCS(false), 3000);
-      }
-      
-      if (newState.tellerServing > lastTellerServing && soundEnabled) {
-        const queueNumber = formatQueueNumber('TELLER', newState.tellerServing);
-        announceQueue(queueNumber, 'Teller');
-        setFlashTeller(true);
-        setTimeout(() => setFlashTeller(false), 3000);
-      }
-      
-      setLastCSServing(newState.csServing);
-      setLastTellerServing(newState.tellerServing);
-    }, 1000);
+    }, 5000);
 
-    return () => clearInterval(interval);
-  }, [lastCSServing, lastTellerServing, soundEnabled]);
+    return () => {
+      unsubscribe();
+      clearInterval(configInterval);
+    };
+  }, [soundEnabled]);
 
   useEffect(() => {
     const timeInterval = setInterval(() => {
@@ -63,6 +108,14 @@ const QueueDisplay = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="h-screen w-screen bg-gradient-to-br from-[#001F3F] via-[#003D7A] to-[#002B57] flex items-center justify-center">
+        <Loader2 className="h-12 w-12 text-white animate-spin" />
+      </div>
+    );
+  }
+
   const currentDate = new Date().toLocaleDateString('id-ID', {
     weekday: 'long',
     year: 'numeric',
@@ -70,8 +123,8 @@ const QueueDisplay = () => {
     day: 'numeric',
   });
 
-  const csNumber = queueState.csServing > 0 ? formatQueueNumber('CS', queueState.csServing) : '---';
-  const tellerNumber = queueState.tellerServing > 0 ? formatQueueNumber('TELLER', queueState.tellerServing) : '---';
+  const csNumber = queueState && queueState.cs_serving > 0 ? formatQueueNumber('CS', queueState.cs_serving) : '---';
+  const tellerNumber = queueState && queueState.teller_serving > 0 ? formatQueueNumber('TELLER', queueState.teller_serving) : '---';
 
   const runningTextSpeed = {
     slow: '30s',
@@ -79,9 +132,6 @@ const QueueDisplay = () => {
     fast: '10s',
   };
 
-  // Bankaltimtara Corporate Colors
-  // Blue: #003D7A (corporate blue), Gold: #C5A028 / #D4AF37
-  
   // Queue Card Component
   const QueueCard = ({ type, number, flash, waiting, total }: { 
     type: 'TELLER' | 'CS'; 
@@ -92,7 +142,6 @@ const QueueDisplay = () => {
   }) => {
     const isTeller = type === 'TELLER';
     
-    // Teller: Gold theme, CS: Blue theme
     const bgClass = flash 
       ? (isTeller ? 'bg-gradient-to-br from-[#D4AF37] to-[#B8960C]' : 'bg-gradient-to-br from-[#0052A3] to-[#003D7A]')
       : (isTeller ? 'bg-gradient-to-br from-[#C5A028] to-[#A68A1E]' : 'bg-gradient-to-br from-[#003D7A] to-[#002B57]');
@@ -165,15 +214,15 @@ const QueueDisplay = () => {
           type="TELLER" 
           number={tellerNumber} 
           flash={flashTeller}
-          waiting={Math.max(0, queueState.tellerQueue - queueState.tellerServing)}
-          total={queueState.tellerQueue}
+          waiting={queueState ? Math.max(0, queueState.teller_queue - queueState.teller_serving) : 0}
+          total={queueState?.teller_queue || 0}
         />
         <QueueCard 
           type="CS" 
           number={csNumber} 
           flash={flashCS}
-          waiting={Math.max(0, queueState.csQueue - queueState.csServing)}
-          total={queueState.csQueue}
+          waiting={queueState ? Math.max(0, queueState.cs_queue - queueState.cs_serving) : 0}
+          total={queueState?.cs_queue || 0}
         />
       </div>
       <div className="w-1/2">
@@ -189,15 +238,15 @@ const QueueDisplay = () => {
           type="TELLER" 
           number={tellerNumber} 
           flash={flashTeller}
-          waiting={Math.max(0, queueState.tellerQueue - queueState.tellerServing)}
-          total={queueState.tellerQueue}
+          waiting={queueState ? Math.max(0, queueState.teller_queue - queueState.teller_serving) : 0}
+          total={queueState?.teller_queue || 0}
         />
         <QueueCard 
           type="CS" 
           number={csNumber} 
           flash={flashCS}
-          waiting={Math.max(0, queueState.csQueue - queueState.csServing)}
-          total={queueState.csQueue}
+          waiting={queueState ? Math.max(0, queueState.cs_queue - queueState.cs_serving) : 0}
+          total={queueState?.cs_queue || 0}
         />
       </div>
       <div className="h-1/3">
@@ -216,15 +265,15 @@ const QueueDisplay = () => {
           type="TELLER" 
           number={tellerNumber} 
           flash={flashTeller}
-          waiting={Math.max(0, queueState.tellerQueue - queueState.tellerServing)}
-          total={queueState.tellerQueue}
+          waiting={queueState ? Math.max(0, queueState.teller_queue - queueState.teller_serving) : 0}
+          total={queueState?.teller_queue || 0}
         />
         <QueueCard 
           type="CS" 
           number={csNumber} 
           flash={flashCS}
-          waiting={Math.max(0, queueState.csQueue - queueState.csServing)}
-          total={queueState.csQueue}
+          waiting={queueState ? Math.max(0, queueState.cs_queue - queueState.cs_serving) : 0}
+          total={queueState?.cs_queue || 0}
         />
       </div>
     </div>
@@ -236,15 +285,15 @@ const QueueDisplay = () => {
         type="TELLER" 
         number={tellerNumber} 
         flash={flashTeller}
-        waiting={Math.max(0, queueState.tellerQueue - queueState.tellerServing)}
-        total={queueState.tellerQueue}
+        waiting={queueState ? Math.max(0, queueState.teller_queue - queueState.teller_serving) : 0}
+        total={queueState?.teller_queue || 0}
       />
       <QueueCard 
         type="CS" 
         number={csNumber} 
         flash={flashCS}
-        waiting={Math.max(0, queueState.csQueue - queueState.csServing)}
-        total={queueState.csQueue}
+        waiting={queueState ? Math.max(0, queueState.cs_queue - queueState.cs_serving) : 0}
+        total={queueState?.cs_queue || 0}
       />
     </div>
   );
@@ -296,12 +345,12 @@ const QueueDisplay = () => {
         </div>
       </div>
 
-      {/* Main Content - responsive sizing */}
+      {/* Main Content */}
       <div className="flex-1 min-h-0 overflow-hidden">
         {renderLayout()}
       </div>
 
-      {/* Running Text - Gold theme */}
+      {/* Running Text */}
       {tvConfig.showRunningText && tvConfig.runningText && (
         <div className="mt-6 bg-gradient-to-r from-[#C5A028] via-[#D4AF37] to-[#C5A028] rounded-xl overflow-hidden border-2 border-[#D4AF37]/50">
           <div className="py-3 px-4">

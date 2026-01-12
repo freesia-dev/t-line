@@ -4,17 +4,10 @@ import QueueButton from '@/components/QueueButton';
 import PrintTicket from '@/components/PrintTicket';
 import Navigation from '@/components/Navigation';
 import logoBank from '@/assets/logo-bankaltimtara.png';
-import {
-  getQueueState,
-  getPrintConfig,
-  getDisplayConfig,
-  takeCSQueue,
-  takeTellerQueue,
-  QueueState,
-  PrintConfig,
-  DisplayConfig,
-} from '@/lib/queueStore';
+import { fetchQueueState, takeCSQueue, takeTellerQueue, subscribeToQueueState, QueueState } from '@/lib/supabaseQueueStore';
+import { getPrintConfig, getDisplayConfig, PrintConfig, DisplayConfig } from '@/lib/queueStore';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 interface PrintData {
   type: 'CS' | 'TELLER';
@@ -23,52 +16,71 @@ interface PrintData {
 }
 
 const Dashboard = () => {
-  const [queueState, setQueueState] = useState<QueueState>(getQueueState());
+  const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
   const [displayConfig, setDisplayConfig] = useState<DisplayConfig>(getDisplayConfig());
   const [printData, setPrintData] = useState<PrintData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isTakingQueue, setIsTakingQueue] = useState(false);
 
-  // Refresh state on focus (for multi-tab sync)
   useEffect(() => {
+    // Initial fetch
+    fetchQueueState().then((state) => {
+      setQueueState(state);
+      setIsLoading(false);
+    });
+
+    // Subscribe to real-time updates
+    const unsubscribe = subscribeToQueueState((newState) => {
+      setQueueState(newState);
+    });
+
+    // Refresh local configs on focus
     const handleFocus = () => {
-      setQueueState(getQueueState());
       setPrintConfig(getPrintConfig());
       setDisplayConfig(getDisplayConfig());
     };
     
     window.addEventListener('focus', handleFocus);
-    
-    // Check for daily reset every minute
-    const interval = setInterval(() => {
-      setQueueState(getQueueState());
-    }, 60000);
 
     return () => {
+      unsubscribe();
       window.removeEventListener('focus', handleFocus);
-      clearInterval(interval);
     };
   }, []);
 
-  const handleTakeCS = useCallback(() => {
-    const result = takeCSQueue();
-    setQueueState(getQueueState());
-    setPrintData({
-      type: 'CS',
-      number: result.number,
-      remaining: result.remaining,
-    });
-    toast.success(`Nomor antrian CS: B${String(result.number).padStart(3, '0')}`);
+  const handleTakeCS = useCallback(async () => {
+    setIsTakingQueue(true);
+    const result = await takeCSQueue();
+    setIsTakingQueue(false);
+    
+    if (result) {
+      setPrintData({
+        type: 'CS',
+        number: result.number,
+        remaining: result.remaining,
+      });
+      toast.success(`Nomor antrian CS: B${String(result.number).padStart(3, '0')}`);
+    } else {
+      toast.error('Gagal mengambil nomor antrian');
+    }
   }, []);
 
-  const handleTakeTeller = useCallback(() => {
-    const result = takeTellerQueue();
-    setQueueState(getQueueState());
-    setPrintData({
-      type: 'TELLER',
-      number: result.number,
-      remaining: result.remaining,
-    });
-    toast.success(`Nomor antrian Teller: A${String(result.number).padStart(3, '0')}`);
+  const handleTakeTeller = useCallback(async () => {
+    setIsTakingQueue(true);
+    const result = await takeTellerQueue();
+    setIsTakingQueue(false);
+    
+    if (result) {
+      setPrintData({
+        type: 'TELLER',
+        number: result.number,
+        remaining: result.remaining,
+      });
+      toast.success(`Nomor antrian Teller: A${String(result.number).padStart(3, '0')}`);
+    } else {
+      toast.error('Gagal mengambil nomor antrian');
+    }
   }, []);
 
   const handlePrinted = useCallback(() => {
@@ -81,6 +93,14 @@ const Dashboard = () => {
     month: 'long',
     day: 'numeric',
   });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -119,15 +139,17 @@ const Dashboard = () => {
           <div className="flex flex-col gap-8 md:flex-row md:gap-12">
             <QueueButton
               type="CS"
-              currentQueue={queueState.csQueue}
+              currentQueue={queueState?.cs_queue || 0}
               displayConfig={displayConfig}
               onClick={handleTakeCS}
+              disabled={isTakingQueue}
             />
             <QueueButton
               type="TELLER"
-              currentQueue={queueState.tellerQueue}
+              currentQueue={queueState?.teller_queue || 0}
               displayConfig={displayConfig}
               onClick={handleTakeTeller}
+              disabled={isTakingQueue}
             />
           </div>
 
