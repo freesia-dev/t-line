@@ -7,9 +7,10 @@ interface QueueButtonProps {
   currentQueue: number;
   displayConfig: DisplayConfig;
   onClick: () => void;
+  disabled?: boolean;
 }
 
-const QueueButton = ({ type, currentQueue, displayConfig, onClick }: QueueButtonProps) => {
+const QueueButton = ({ type, currentQueue, displayConfig, onClick, disabled }: QueueButtonProps) => {
   const isCS = type === 'CS';
   
   const getSizeClasses = () => {
@@ -33,9 +34,10 @@ const QueueButton = ({ type, currentQueue, displayConfig, onClick }: QueueButton
   return (
     <motion.button
       onClick={onClick}
-      className={`btn-kiosk ${isCS ? 'btn-kiosk-cs' : 'btn-kiosk-teller'} ${getSizeClasses()} flex flex-col items-center gap-4`}
-      whileHover={displayConfig.showAnimation ? { scale: 1.05 } : {}}
-      whileTap={displayConfig.showAnimation ? { scale: 0.95 } : {}}
+      disabled={disabled}
+      className={`btn-kiosk ${isCS ? 'btn-kiosk-cs' : 'btn-kiosk-teller'} ${getSizeClasses()} flex flex-col items-center gap-4 ${disabled ? 'opacity-70 cursor-not-allowed' : ''}`}
+      whileHover={displayConfig.showAnimation && !disabled ? { scale: 1.05 } : {}}
+      whileTap={displayConfig.showAnimation && !disabled ? { scale: 0.95 } : {}}
       initial={displayConfig.showAnimation ? { opacity: 0, y: 20 } : {}}
       animate={displayConfig.showAnimation ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.3 }}

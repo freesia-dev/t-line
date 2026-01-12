@@ -2,35 +2,40 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getQueueState, saveQueueState, formatQueueNumber, QueueState } from '@/lib/queueStore';
+import { fetchQueueState, callNextTeller, formatQueueNumber, subscribeToQueueState, QueueState } from '@/lib/supabaseQueueStore';
 import { toast } from '@/hooks/use-toast';
-import { PhoneCall, Users, CheckCircle } from 'lucide-react';
+import { PhoneCall, Users, CheckCircle, Loader2 } from 'lucide-react';
 import logoBank from '@/assets/logo-bankaltimtara.png';
-import { playDingSound, announceQueue } from '@/lib/audioUtils';
 
 const TellerCaller = () => {
-  const [queueState, setQueueState] = useState<QueueState>(getQueueState());
+  const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCallLoading, setIsCallLoading] = useState(false);
 
   useEffect(() => {
-    const handleFocus = () => {
-      setQueueState(getQueueState());
-    };
-    window.addEventListener('focus', handleFocus);
-    
-    const interval = setInterval(() => {
-      setQueueState(getQueueState());
-    }, 2000);
+    // Initial fetch
+    fetchQueueState().then((state) => {
+      setQueueState(state);
+      setIsLoading(false);
+    });
 
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      clearInterval(interval);
-    };
+    // Subscribe to real-time updates
+    const unsubscribe = subscribeToQueueState((newState) => {
+      setQueueState(newState);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const handleCallNext = () => {
-    const state = getQueueState();
-    if (state.tellerServing >= state.tellerQueue) {
+  const handleCallNext = async () => {
+    if (!queueState) return;
+    
+    setIsCallLoading(true);
+    const result = await callNextTeller();
+    setIsCallLoading(false);
+
+    if (!result) {
       toast({
         title: "Tidak ada antrian",
         description: "Semua antrian sudah dipanggil",
@@ -39,16 +44,10 @@ const TellerCaller = () => {
       return;
     }
 
-    state.tellerServing += 1;
-    saveQueueState(state);
-    setQueueState(state);
     setIsAnimating(true);
+    const queueNumber = formatQueueNumber('TELLER', result.number);
 
-    const queueNumber = formatQueueNumber('TELLER', state.tellerServing);
-    
-    // Play sound and announce
-    announceQueue(queueNumber, 'Teller');
-
+    // NO SOUND HERE - Sound only plays on /display
     toast({
       title: "Memanggil Antrian",
       description: `Nomor ${queueNumber} silakan menuju Teller`,
@@ -57,8 +56,16 @@ const TellerCaller = () => {
     setTimeout(() => setIsAnimating(false), 1000);
   };
 
-  const waiting = Math.max(0, queueState.tellerQueue - queueState.tellerServing);
-  const currentServing = queueState.tellerServing > 0 ? formatQueueNumber('TELLER', queueState.tellerServing) : '---';
+  if (isLoading || !queueState) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-900 flex items-center justify-center">
+        <Loader2 className="h-12 w-12 text-white animate-spin" />
+      </div>
+    );
+  }
+
+  const waiting = Math.max(0, queueState.teller_queue - queueState.teller_serving);
+  const currentServing = queueState.teller_serving > 0 ? formatQueueNumber('TELLER', queueState.teller_serving) : '---';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-900 p-4 md:p-8">
@@ -109,7 +116,7 @@ const TellerCaller = () => {
             <CardContent className="p-4 text-center">
               <CheckCircle className="h-8 w-8 text-green-400 mx-auto mb-2" />
               <p className="text-emerald-200 text-sm">Total Antrian</p>
-              <p className="text-3xl font-bold text-white">{queueState.tellerQueue}</p>
+              <p className="text-3xl font-bold text-white">{queueState.teller_queue}</p>
             </CardContent>
           </Card>
         </div>
@@ -121,10 +128,14 @@ const TellerCaller = () => {
         >
           <Button
             onClick={handleCallNext}
-            disabled={waiting === 0}
+            disabled={waiting === 0 || isCallLoading}
             className="w-full h-20 text-xl font-bold bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-gray-500 disabled:to-gray-600"
           >
-            <PhoneCall className="h-8 w-8 mr-3" />
+            {isCallLoading ? (
+              <Loader2 className="h-8 w-8 mr-3 animate-spin" />
+            ) : (
+              <PhoneCall className="h-8 w-8 mr-3" />
+            )}
             Panggil Berikutnya
           </Button>
         </motion.div>

@@ -41,6 +41,48 @@ export type Database = {
         }
         Relationships: []
       }
+      queue_state: {
+        Row: {
+          created_at: string
+          cs_queue: number
+          cs_serving: number
+          id: string
+          last_called_at: string | null
+          last_called_number: number | null
+          last_called_type: string | null
+          last_reset_date: string
+          teller_queue: number
+          teller_serving: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cs_queue?: number
+          cs_serving?: number
+          id?: string
+          last_called_at?: string | null
+          last_called_number?: number | null
+          last_called_type?: string | null
+          last_reset_date?: string
+          teller_queue?: number
+          teller_serving?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cs_queue?: number
+          cs_serving?: number
+          id?: string
+          last_called_at?: string | null
+          last_called_number?: number | null
+          last_called_type?: string | null
+          last_reset_date?: string
+          teller_queue?: number
+          teller_serving?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
