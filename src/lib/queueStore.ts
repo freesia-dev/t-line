@@ -121,6 +121,6 @@ export const resetQueue = (): void => {
 };
 
 export const formatQueueNumber = (type: 'CS' | 'TELLER', number: number): string => {
-  const prefix = type === 'CS' ? 'A' : 'B';
+  const prefix = type === 'TELLER' ? 'A' : 'B';
   return `${prefix}${String(number).padStart(3, '0')}`;
 };
