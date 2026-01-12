@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import QueueButton from '@/components/QueueButton';
 import PrintTicket from '@/components/PrintTicket';
 import Navigation from '@/components/Navigation';
+import logoBank from '@/assets/logo-bankaltimtara.png';
 import {
   getQueueState,
   getPrintConfig,
@@ -56,7 +57,7 @@ const Dashboard = () => {
       number: result.number,
       remaining: result.remaining,
     });
-    toast.success(`Nomor antrian CS: A${String(result.number).padStart(3, '0')}`);
+    toast.success(`Nomor antrian CS: B${String(result.number).padStart(3, '0')}`);
   }, []);
 
   const handleTakeTeller = useCallback(() => {
@@ -67,7 +68,7 @@ const Dashboard = () => {
       number: result.number,
       remaining: result.remaining,
     });
-    toast.success(`Nomor antrian Teller: B${String(result.number).padStart(3, '0')}`);
+    toast.success(`Nomor antrian Teller: A${String(result.number).padStart(3, '0')}`);
   }, []);
 
   const handlePrinted = useCallback(() => {
@@ -98,6 +99,11 @@ const Dashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
+            <img 
+              src={logoBank} 
+              alt="Logo Bankaltimtara" 
+              className="mx-auto mb-4 h-20 w-auto"
+            />
             <h1 className="text-gradient-primary mb-2 text-4xl font-extrabold tracking-tight md:text-5xl">
               Bankaltimtara
             </h1>
