@@ -9,22 +9,27 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import LayoutPreview from '@/components/DisplayLayoutPreview';
 import {
   getPrintConfig,
   savePrintConfig,
   getDisplayConfig,
   saveDisplayConfig,
+  getTVDisplayConfig,
+  saveTVDisplayConfig,
   getQueueState,
   resetQueue,
   PrintConfig,
   DisplayConfig,
+  TVDisplayConfig,
 } from '@/lib/queueStore';
 import { toast } from 'sonner';
-import { RotateCcw, Save, Printer, Monitor } from 'lucide-react';
+import { RotateCcw, Save, Printer, Monitor, Tv, ExternalLink } from 'lucide-react';
 
 const Konfigurasi = () => {
   const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
   const [displayConfig, setDisplayConfig] = useState<DisplayConfig>(getDisplayConfig());
+  const [tvConfig, setTVConfig] = useState<TVDisplayConfig>(getTVDisplayConfig());
   const [queueState, setQueueState] = useState(getQueueState());
 
   useEffect(() => {
@@ -39,6 +44,11 @@ const Konfigurasi = () => {
   const handleSaveDisplayConfig = () => {
     saveDisplayConfig(displayConfig);
     toast.success('Konfigurasi tampilan berhasil disimpan');
+  };
+
+  const handleSaveTVConfig = () => {
+    saveTVDisplayConfig(tvConfig);
+    toast.success('Konfigurasi display TV berhasil disimpan');
   };
 
   const handleResetQueue = () => {
@@ -65,7 +75,7 @@ const Konfigurasi = () => {
         >
           <h1 className="mb-2 text-3xl font-bold text-foreground">Konfigurasi</h1>
           <p className="mb-8 text-muted-foreground">
-            Atur tampilan kiosk dan format cetak tiket antrian
+            Atur tampilan kiosk, display TV, dan format cetak tiket antrian
           </p>
         </motion.div>
 
@@ -75,10 +85,14 @@ const Konfigurasi = () => {
           transition={{ duration: 0.5, delay: 0.1 }}
         >
           <Tabs defaultValue="display" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="display" className="gap-2">
                 <Monitor size={16} />
-                Tampilan
+                Kiosk
+              </TabsTrigger>
+              <TabsTrigger value="tv" className="gap-2">
+                <Tv size={16} />
+                Display TV
               </TabsTrigger>
               <TabsTrigger value="print" className="gap-2">
                 <Printer size={16} />
@@ -93,9 +107,9 @@ const Konfigurasi = () => {
             <TabsContent value="display">
               <Card>
                 <CardHeader>
-                  <CardTitle>Pengaturan Tampilan</CardTitle>
+                  <CardTitle>Pengaturan Kiosk</CardTitle>
                   <CardDescription>
-                    Kustomisasi tampilan kiosk sesuai kebutuhan
+                    Kustomisasi tampilan kiosk pengambilan antrian
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -152,7 +166,163 @@ const Konfigurasi = () => {
 
                   <Button onClick={handleSaveDisplayConfig} className="w-full gap-2">
                     <Save size={18} />
-                    Simpan Pengaturan Tampilan
+                    Simpan Pengaturan Kiosk
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="tv">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Pengaturan Display TV</CardTitle>
+                      <CardDescription>
+                        Kustomisasi tampilan display antrian untuk monitor/TV
+                      </CardDescription>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => window.open('/display', '_blank')}
+                    >
+                      <ExternalLink size={16} />
+                      Buka Display
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Layout Selection */}
+                  <div className="space-y-3">
+                    <Label>Pilih Layout</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {(['layout1', 'layout2', 'layout3', 'layout4'] as const).map((layout) => (
+                        <LayoutPreview
+                          key={layout}
+                          layout={layout}
+                          isSelected={tvConfig.layout === layout}
+                          onClick={() => setTVConfig({ ...tvConfig, layout })}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Media Settings */}
+                  <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="showMedia">Tampilkan Media</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Tampilkan poster atau video promosi
+                        </p>
+                      </div>
+                      <Switch
+                        id="showMedia"
+                        checked={tvConfig.showMedia}
+                        onCheckedChange={(checked) =>
+                          setTVConfig({ ...tvConfig, showMedia: checked })
+                        }
+                      />
+                    </div>
+
+                    {tvConfig.showMedia && (
+                      <>
+                        <div className="space-y-2">
+                          <Label>Tipe Media</Label>
+                          <Select
+                            value={tvConfig.mediaType}
+                            onValueChange={(value: 'image' | 'video') =>
+                              setTVConfig({ ...tvConfig, mediaType: value })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="image">Gambar/Poster</SelectItem>
+                              <SelectItem value="video">Video</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="mediaUrl">URL Media</Label>
+                          <Input
+                            id="mediaUrl"
+                            value={tvConfig.mediaUrl}
+                            onChange={(e) =>
+                              setTVConfig({ ...tvConfig, mediaUrl: e.target.value })
+                            }
+                            placeholder="https://example.com/poster.jpg"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Masukkan URL gambar atau video yang akan ditampilkan
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Running Text Settings */}
+                  <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="showRunningText">Running Text</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Tampilkan informasi berjalan di bawah layar
+                        </p>
+                      </div>
+                      <Switch
+                        id="showRunningText"
+                        checked={tvConfig.showRunningText}
+                        onCheckedChange={(checked) =>
+                          setTVConfig({ ...tvConfig, showRunningText: checked })
+                        }
+                      />
+                    </div>
+
+                    {tvConfig.showRunningText && (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="runningText">Isi Running Text</Label>
+                          <Textarea
+                            id="runningText"
+                            value={tvConfig.runningText}
+                            onChange={(e) =>
+                              setTVConfig({ ...tvConfig, runningText: e.target.value })
+                            }
+                            placeholder="Suku Bunga Deposito: 1 Bulan 3.25% | 3 Bulan 3.50%..."
+                            rows={3}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Kecepatan</Label>
+                          <Select
+                            value={tvConfig.runningTextSpeed}
+                            onValueChange={(value: 'slow' | 'medium' | 'fast') =>
+                              setTVConfig({ ...tvConfig, runningTextSpeed: value })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="slow">Lambat</SelectItem>
+                              <SelectItem value="medium">Sedang</SelectItem>
+                              <SelectItem value="fast">Cepat</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <Button onClick={handleSaveTVConfig} className="w-full gap-2">
+                    <Save size={18} />
+                    Simpan Pengaturan Display TV
                   </Button>
                 </CardContent>
               </Card>
