@@ -24,6 +24,16 @@ export interface DisplayConfig {
   showQueueCount: boolean;
 }
 
+export interface TVDisplayConfig {
+  layout: 'layout1' | 'layout2' | 'layout3' | 'layout4';
+  showMedia: boolean;
+  mediaType: 'image' | 'video';
+  mediaUrl: string;
+  showRunningText: boolean;
+  runningText: string;
+  runningTextSpeed: 'slow' | 'medium' | 'fast';
+}
+
 const DEFAULT_QUEUE_STATE: QueueState = {
   csQueue: 0,
   tellerQueue: 0,
@@ -46,6 +56,16 @@ const DEFAULT_DISPLAY_CONFIG: DisplayConfig = {
   showAnimation: true,
   buttonSize: 'large',
   showQueueCount: true,
+};
+
+const DEFAULT_TV_DISPLAY_CONFIG: TVDisplayConfig = {
+  layout: 'layout1',
+  showMedia: true,
+  mediaType: 'image',
+  mediaUrl: '',
+  showRunningText: true,
+  runningText: 'Suku Bunga Deposito: 1 Bulan 3.25% | 3 Bulan 3.50% | 6 Bulan 3.75% | 12 Bulan 4.00% | Tabungan Simpeda 1.00% | Giro 0.50%',
+  runningTextSpeed: 'medium',
 };
 
 export const getQueueState = (): QueueState => {
@@ -93,6 +113,19 @@ export const getDisplayConfig = (): DisplayConfig => {
 
 export const saveDisplayConfig = (config: DisplayConfig): void => {
   localStorage.setItem('displayConfig', JSON.stringify(config));
+};
+
+export const getTVDisplayConfig = (): TVDisplayConfig => {
+  const stored = localStorage.getItem('tvDisplayConfig');
+  if (stored) {
+    return { ...DEFAULT_TV_DISPLAY_CONFIG, ...JSON.parse(stored) };
+  }
+  localStorage.setItem('tvDisplayConfig', JSON.stringify(DEFAULT_TV_DISPLAY_CONFIG));
+  return DEFAULT_TV_DISPLAY_CONFIG;
+};
+
+export const saveTVDisplayConfig = (config: TVDisplayConfig): void => {
+  localStorage.setItem('tvDisplayConfig', JSON.stringify(config));
 };
 
 export const takeCSQueue = (): { number: number; remaining: number } => {
