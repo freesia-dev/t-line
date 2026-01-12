@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Konfigurasi from "./pages/Konfigurasi";
 import About from "./pages/About";
+import CSCaller from "./pages/CSCaller";
+import TellerCaller from "./pages/TellerCaller";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -19,6 +21,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/konfigurasi" element={<Konfigurasi />} />
+          <Route path="/cs-caller" element={<CSCaller />} />
+          <Route path="/teller-caller" element={<TellerCaller />} />
           <Route path="/about" element={<About />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
