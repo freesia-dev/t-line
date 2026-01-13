@@ -376,6 +376,193 @@ export const printTicket = async (
   });
 };
 
+// Print langsung tanpa popup - menggunakan RawBT intent atau Web Bluetooth
+export const printTicketDirect = async (
+  type: 'CS' | 'TELLER',
+  number: number,
+  remaining: number,
+  config: PrintConfig,
+  printerConfig: PrinterConfig
+): Promise<boolean> => {
+  const ticketData = generateTicketData(type, number, remaining, config);
+
+  // Jika Web Bluetooth connected, gunakan itu
+  if (printerConfig.method === 'webBluetooth' || 
+      (printerConfig.method === 'auto' && isPrinterConnected())) {
+    if (!isPrinterConnected()) {
+      // Coba reconnect ke device terakhir
+      const lastDevice = getLastPrinterDevice();
+      if (lastDevice) {
+        try {
+          await connectToPrinter(lastDevice.id);
+        } catch (error) {
+          console.warn('Could not auto-reconnect to printer:', error);
+        }
+      }
+    }
+    
+    if (isPrinterConnected()) {
+      return await printViaBluetooth(ticketData);
+    }
+  }
+
+  // Gunakan RawBT intent untuk Android
+  if (printerConfig.method === 'rawbt' || printerConfig.method === 'auto') {
+    return printViaRawBT(ticketData);
+  }
+
+  // Fallback terakhir: window.print() dengan silent print jika memungkinkan
+  return printViaBrowserSilent(type, number, remaining, config);
+};
+
+// Print via RawBT Android app using intent
+const printViaRawBT = (data: Uint8Array): Promise<boolean> => {
+  return new Promise((resolve) => {
+    try {
+      // Convert Uint8Array to base64
+      const base64Data = btoa(String.fromCharCode(...data));
+      
+      // RawBT intent URL scheme
+      const rawbtUrl = `intent://rawbt.ru/esc?data=${encodeURIComponent(base64Data)}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end`;
+      
+      // Try RawBT intent
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = rawbtUrl;
+      document.body.appendChild(iframe);
+      
+      // Cleanup after attempt
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+        resolve(true);
+      }, 1000);
+    } catch (error) {
+      console.error('RawBT print error:', error);
+      // Fallback: try alternative rawbt scheme
+      try {
+        const base64Data = btoa(String.fromCharCode(...data));
+        window.location.href = `rawbt:base64,${base64Data}`;
+        resolve(true);
+      } catch {
+        resolve(false);
+      }
+    }
+  });
+};
+
+// Silent browser print (creates hidden iframe and prints)
+const printViaBrowserSilent = async (
+  type: 'CS' | 'TELLER',
+  number: number,
+  remaining: number,
+  config: PrintConfig
+): Promise<boolean> => {
+  return new Promise((resolve) => {
+    // Create print content
+    const printWindow = window.open('', '_blank', 'width=300,height=400');
+    if (!printWindow) {
+      // Fallback ke window.print() biasa
+      window.print();
+      resolve(true);
+      return;
+    }
+
+    const formattedNumber = type === 'CS' ? `B${String(number).padStart(3, '0')}` : `A${String(number).padStart(3, '0')}`;
+    const now = new Date();
+    const visitDate = now.toLocaleDateString('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    const visitTime = now.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Tiket Antrian</title>
+        <style>
+          @page { 
+            size: 58mm auto; 
+            margin: 0; 
+          }
+          * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+          }
+          body { 
+            font-family: 'Courier New', monospace; 
+            font-size: 10pt; 
+            width: 58mm;
+            padding: 2mm;
+            text-align: center;
+          }
+          .separator { 
+            border-top: 1px dashed #000; 
+            margin: 2mm 0; 
+          }
+          .queue-number { 
+            font-size: 24pt; 
+            font-weight: bold; 
+            margin: 3mm 0; 
+          }
+          .bank-name { 
+            font-weight: bold; 
+            font-size: 11pt; 
+          }
+          .queue-type { 
+            font-weight: bold; 
+            margin-top: 2mm; 
+          }
+          .footer { 
+            font-size: 8pt; 
+            margin-top: 2mm; 
+          }
+        </style>
+      </head>
+      <body>
+        <div class="bank-name">${config.bankName}</div>
+        <div>${config.branchName}</div>
+        <div class="separator"></div>
+        <div>${visitDate}</div>
+        <div><strong>${visitTime}</strong></div>
+        <div class="separator"></div>
+        <div class="queue-type">${type === 'CS' ? 'CUSTOMER SERVICE' : 'TELLER'}</div>
+        <div class="queue-number">${formattedNumber}</div>
+        <div>Sisa antrian: <strong>${remaining}</strong> orang</div>
+        <div class="separator"></div>
+        <div class="footer">${config.footerMessage}</div>
+      </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    
+    // Wait for content to load then print
+    printWindow.onload = () => {
+      printWindow.print();
+      printWindow.close();
+      resolve(true);
+    };
+
+    // Fallback if onload doesn't fire
+    setTimeout(() => {
+      try {
+        printWindow.print();
+        printWindow.close();
+      } catch (e) {
+        console.error('Print window error:', e);
+      }
+      resolve(true);
+    }, 500);
+  });
+};
+
 // Printer config storage
 export const getPrinterConfig = (): PrinterConfig => {
   const stored = localStorage.getItem('printerConfig');
