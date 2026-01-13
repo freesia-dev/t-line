@@ -316,17 +316,36 @@ export const printViaBluetooth = async (data: Uint8Array): Promise<boolean> => {
   }
 
   try {
-    // Split data into chunks (BLE has ~512 byte limit per write)
-    const chunkSize = 512;
+    // POS58 and cheap thermal printers need small chunks (20-100 bytes)
+    // Using 20 bytes for maximum compatibility
+    const chunkSize = 20;
+    const totalChunks = Math.ceil(data.length / chunkSize);
+    
+    console.log(`Printing ${data.length} bytes in ${totalChunks} chunks...`);
+    
     for (let i = 0; i < data.length; i += chunkSize) {
       const chunk = data.slice(i, i + chunkSize);
-      await writerCharacteristic.writeValue(chunk);
-      // Small delay between chunks
-      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Use writeValueWithoutResponse for faster printing if available
+      try {
+        await writerCharacteristic.writeValueWithoutResponse(chunk);
+      } catch {
+        await writerCharacteristic.writeValue(chunk);
+      }
+      
+      // Longer delay for stability (100ms for POS58)
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
+    
+    console.log('Print completed successfully');
     return true;
   } catch (error) {
     console.error('Error printing via Bluetooth:', error);
+    // Try to reset connection on error
+    if ((error as Error).message?.includes('GATT')) {
+      connectedDevice = null;
+      writerCharacteristic = null;
+    }
     throw error;
   }
 };
