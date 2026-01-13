@@ -28,10 +28,10 @@ const PrintTicketContent = ({ type, number, config, remaining }: Omit<PrintTicke
 
   const getFontSize = () => {
     switch (config.fontSize) {
-      case 'small': return '32pt';
-      case 'medium': return '40pt';
-      case 'large': return '48pt';
-      default: return '40pt';
+      case 'small': return '24pt';
+      case 'medium': return '28pt';
+      case 'large': return '32pt';
+      default: return '28pt';
     }
   };
 
