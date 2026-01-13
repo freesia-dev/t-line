@@ -283,8 +283,8 @@ export const generateTicketData = (
     commands.push(...encoder.encode(line), LF);
   });
 
-  // Feed and cut
-  commands.push(...ESCPOS.FEED_LINES(4));
+  // Feed minimal dan cut (2 baris cukup untuk clearance pisau)
+  commands.push(...ESCPOS.FEED_LINES(2));
   commands.push(...ESCPOS.CUT_PAPER_PARTIAL);
 
   return new Uint8Array(commands);
