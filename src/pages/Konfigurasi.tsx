@@ -380,6 +380,25 @@ const Konfigurasi = () => {
                     />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label>Kecepatan Pelafalan</Label>
+                    <Select
+                      value={voiceConfig.speed}
+                      onValueChange={(value: 'slow' | 'normal' | 'fast') =>
+                        setVoiceConfig({ ...voiceConfig, speed: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="slow">Lambat</SelectItem>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="fast">Cepat</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   {!voiceConfig.useBrowserTTS && (
                     <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
                       <div className="space-y-2">
@@ -410,19 +429,19 @@ const Konfigurasi = () => {
                           </SelectContent>
                         </Select>
                       </div>
-
-                      <div className="pt-2">
-                        <Button
-                          variant="outline"
-                          onClick={handleTestVoice}
-                          className="w-full gap-2"
-                        >
-                          <Volume2 size={18} />
-                          Test Suara
-                        </Button>
-                      </div>
                     </div>
                   )}
+
+                  <div className="pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={handleTestVoice}
+                      className="w-full gap-2"
+                    >
+                      <Volume2 size={18} />
+                      Test Suara
+                    </Button>
+                  </div>
 
                   <Button onClick={handleSaveVoiceConfig} className="w-full gap-2">
                     <Save size={18} />

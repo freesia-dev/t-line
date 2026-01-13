@@ -38,6 +38,7 @@ export interface VoiceConfig {
   voiceId: string;
   voiceName: string;
   useBrowserTTS: boolean;
+  speed: 'slow' | 'normal' | 'fast';
 }
 
 export const ELEVENLABS_VOICES = [
@@ -59,6 +60,7 @@ const DEFAULT_VOICE_CONFIG: VoiceConfig = {
   voiceId: 'onwK4e9ZLuTAKqWW03F9',
   voiceName: 'Daniel (Indonesia)',
   useBrowserTTS: false,
+  speed: 'normal',
 };
 
 const DEFAULT_QUEUE_STATE: QueueState = {
