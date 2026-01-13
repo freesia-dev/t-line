@@ -17,6 +17,7 @@ const QueueDisplay = () => {
   const [flashTeller, setFlashTeller] = useState(false);
   const [time, setTime] = useState(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }));
   const [isLoading, setIsLoading] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState(0);
   
   const lastCalledRef = useRef<{ type: string | null; number: number | null; at: string | null }>({
     type: null,
@@ -88,6 +89,16 @@ const QueueDisplay = () => {
     }, 1000);
     return () => clearInterval(timeInterval);
   }, []);
+
+  // Slideshow effect
+  useEffect(() => {
+    if (tvConfig.mediaMode === 'slideshow' && tvConfig.slideshowImages && tvConfig.slideshowImages.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % tvConfig.slideshowImages.length);
+      }, (tvConfig.slideshowInterval || 5) * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [tvConfig.mediaMode, tvConfig.slideshowImages, tvConfig.slideshowInterval]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -218,19 +229,6 @@ const QueueDisplay = () => {
       </motion.div>
     );
   };
-
-  // Slideshow state
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  // Slideshow effect
-  useEffect(() => {
-    if (tvConfig.mediaMode === 'slideshow' && tvConfig.slideshowImages.length > 1) {
-      const interval = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % tvConfig.slideshowImages.length);
-      }, (tvConfig.slideshowInterval || 5) * 1000);
-      return () => clearInterval(interval);
-    }
-  }, [tvConfig.mediaMode, tvConfig.slideshowImages, tvConfig.slideshowInterval]);
 
   // Media Component
   const MediaContent = () => {
