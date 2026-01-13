@@ -9,6 +9,7 @@ import About from "./pages/About";
 import CSCaller from "./pages/CSCaller";
 import TellerCaller from "./pages/TellerCaller";
 import QueueDisplay from "./pages/QueueDisplay";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/cs-caller" element={<CSCaller />} />
           <Route path="/teller-caller" element={<TellerCaller />} />
           <Route path="/display" element={<QueueDisplay />} />
+          <Route path="/install" element={<Install />} />
           <Route path="/about" element={<About />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
