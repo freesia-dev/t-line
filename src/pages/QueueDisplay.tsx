@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { fetchQueueState, formatQueueNumber, subscribeToQueueState, QueueState, QueueStatus, getStatusText } from '@/lib/supabaseQueueStore';
+import { fetchQueueState, formatQueueNumber, subscribeToQueueState, QueueState, QueueStatus } from '@/lib/supabaseQueueStore';
 import { getPrintConfig, getTVDisplayConfig, PrintConfig, TVDisplayConfig } from '@/lib/queueStore';
 import { announceQueue } from '@/lib/audioUtils';
 import logoBank from '@/assets/logo-bankaltimtara.png';
@@ -18,7 +18,6 @@ const QueueDisplay = () => {
   const [time, setTime] = useState(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }));
   const [isLoading, setIsLoading] = useState(true);
   
-  // Refs to track last called to avoid duplicate announcements
   const lastCalledRef = useRef<{ type: string | null; number: number | null; at: string | null }>({
     type: null,
     number: null,
@@ -26,11 +25,9 @@ const QueueDisplay = () => {
   });
 
   useEffect(() => {
-    // Initial fetch
     fetchQueueState().then((state) => {
       if (state) {
         setQueueState(state);
-        // Initialize lastCalledRef with current state to avoid announcing on load
         lastCalledRef.current = {
           type: state.last_called_type,
           number: state.last_called_number,
@@ -40,18 +37,15 @@ const QueueDisplay = () => {
       setIsLoading(false);
     });
 
-    // Subscribe to real-time updates - SOUND PLAYS HERE
     const unsubscribe = subscribeToQueueState((newState) => {
       setQueueState(newState);
       
-      // Check if there's a new call (sound should play only on display)
       if (
         newState.last_called_at && 
         newState.last_called_at !== lastCalledRef.current.at &&
         newState.last_called_type &&
         newState.last_called_number
       ) {
-        // Play sound and announce
         if (soundEnabled) {
           const queueNumber = formatQueueNumber(
             newState.last_called_type as 'CS' | 'TELLER',
@@ -61,7 +55,6 @@ const QueueDisplay = () => {
           announceQueue(queueNumber, destination);
         }
         
-        // Flash the appropriate card
         if (newState.last_called_type === 'CS') {
           setFlashCS(true);
           setTimeout(() => setFlashCS(false), 3000);
@@ -70,7 +63,6 @@ const QueueDisplay = () => {
           setTimeout(() => setFlashTeller(false), 3000);
         }
         
-        // Update ref
         lastCalledRef.current = {
           type: newState.last_called_type,
           number: newState.last_called_number,
@@ -79,7 +71,6 @@ const QueueDisplay = () => {
       }
     });
 
-    // Update local configs periodically
     const configInterval = setInterval(() => {
       setPrintConfig(getPrintConfig());
       setTVConfig(getTVDisplayConfig());
@@ -110,7 +101,7 @@ const QueueDisplay = () => {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-screen bg-white flex items-center justify-center">
+      <div className="h-[100dvh] w-screen bg-white flex items-center justify-center">
         <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
       </div>
     );
@@ -132,7 +123,6 @@ const QueueDisplay = () => {
     fast: '10s',
   };
 
-  // Get status badge color and text
   const getStatusBadge = (status: QueueStatus) => {
     switch (status) {
       case 'serving': 
@@ -148,7 +138,7 @@ const QueueDisplay = () => {
     }
   };
 
-  // Queue Card Component
+  // Queue Card Component with responsive sizing
   const QueueCard = ({ type, number, flash, waiting, total, status }: { 
     type: 'TELLER' | 'CS'; 
     number: string; 
@@ -166,33 +156,62 @@ const QueueDisplay = () => {
 
     return (
       <motion.div
-        className={`rounded-3xl p-6 md:p-8 ${bgClass} shadow-2xl h-full flex flex-col justify-center`}
+        className={`rounded-2xl p-3 sm:p-4 lg:p-6 ${bgClass} shadow-2xl h-full flex flex-col justify-center`}
         animate={flash ? { scale: [1, 1.02, 1] } : {}}
         transition={{ duration: 0.5, repeat: flash ? Infinity : 0 }}
       >
         <div className="text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 drop-shadow-lg">
+          <h2 
+            className="font-bold text-white drop-shadow-lg"
+            style={{ fontSize: 'clamp(0.875rem, 2vw, 1.5rem)' }}
+          >
             {isTeller ? 'TELLER' : 'CUSTOMER SERVICE'}
           </h2>
           
           {/* Status Badge */}
-          <div className="flex justify-center mb-4">
-            <span className={`px-4 py-1 rounded-full text-white text-sm font-semibold ${statusBadge.bg}`}>
+          <div className="flex justify-center my-1 sm:my-2">
+            <span 
+              className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-white font-semibold ${statusBadge.bg}`}
+              style={{ fontSize: 'clamp(0.625rem, 1.2vw, 0.875rem)' }}
+            >
               {statusBadge.text}
             </span>
           </div>
 
-          <div className="text-[4rem] sm:text-[5rem] md:text-[6rem] lg:text-[8rem] xl:text-[10rem] font-black text-white leading-none drop-shadow-xl">
+          <div 
+            className="font-black text-white leading-none drop-shadow-xl"
+            style={{ fontSize: 'clamp(2.5rem, 12vmin, 10rem)' }}
+          >
             {number}
           </div>
-          <div className="mt-4 flex justify-center gap-6">
+          <div className="mt-2 sm:mt-3 flex justify-center gap-4 sm:gap-6">
             <div className="text-center">
-              <p className="text-sm text-white/80">Menunggu</p>
-              <p className="text-2xl md:text-3xl font-bold text-white">{waiting}</p>
+              <p 
+                className="text-white/80"
+                style={{ fontSize: 'clamp(0.5rem, 1vw, 0.75rem)' }}
+              >
+                Menunggu
+              </p>
+              <p 
+                className="font-bold text-white"
+                style={{ fontSize: 'clamp(1rem, 3vmin, 2rem)' }}
+              >
+                {waiting}
+              </p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-white/80">Total</p>
-              <p className="text-2xl md:text-3xl font-bold text-white">{total}</p>
+              <p 
+                className="text-white/80"
+                style={{ fontSize: 'clamp(0.5rem, 1vw, 0.75rem)' }}
+              >
+                Total
+              </p>
+              <p 
+                className="font-bold text-white"
+                style={{ fontSize: 'clamp(1rem, 3vmin, 2rem)' }}
+              >
+                {total}
+              </p>
             </div>
           </div>
         </div>
@@ -204,8 +223,8 @@ const QueueDisplay = () => {
   const MediaContent = () => {
     if (!tvConfig.showMedia || !tvConfig.mediaUrl) {
       return (
-        <div className="w-full h-full bg-gray-100 rounded-2xl flex items-center justify-center border-2 border-gray-200">
-          <p className="text-gray-400 text-lg">Tidak ada media</p>
+        <div className="w-full h-full bg-gray-100 rounded-xl flex items-center justify-center border-2 border-gray-200">
+          <p className="text-gray-400" style={{ fontSize: 'clamp(0.75rem, 1.5vw, 1rem)' }}>Tidak ada media</p>
         </div>
       );
     }
@@ -217,7 +236,7 @@ const QueueDisplay = () => {
           autoPlay
           loop
           muted
-          className="w-full h-full object-cover rounded-2xl"
+          className="w-full h-full object-cover rounded-xl"
         />
       );
     }
@@ -226,15 +245,15 @@ const QueueDisplay = () => {
       <img
         src={tvConfig.mediaUrl}
         alt="Promo"
-        className="w-full h-full object-cover rounded-2xl"
+        className="w-full h-full object-cover rounded-xl"
       />
     );
   };
 
-  // Layout Components
+  // Layout Components with responsive gap
   const Layout1 = () => (
-    <div className="flex gap-6 h-full">
-      <div className="flex-1 flex flex-col gap-6">
+    <div className="flex gap-2 sm:gap-4 h-full">
+      <div className="flex-1 flex flex-col gap-2 sm:gap-4">
         <QueueCard 
           type="TELLER" 
           number={tellerNumber} 
@@ -259,8 +278,8 @@ const QueueDisplay = () => {
   );
 
   const Layout2 = () => (
-    <div className="flex flex-col gap-6 h-full">
-      <div className="flex-1 flex gap-6">
+    <div className="flex flex-col gap-2 sm:gap-4 h-full">
+      <div className="flex-1 flex gap-2 sm:gap-4">
         <QueueCard 
           type="TELLER" 
           number={tellerNumber} 
@@ -285,11 +304,11 @@ const QueueDisplay = () => {
   );
 
   const Layout3 = () => (
-    <div className="flex gap-6 h-full">
+    <div className="flex gap-2 sm:gap-4 h-full">
       <div className="w-1/2">
         <MediaContent />
       </div>
-      <div className="flex-1 flex flex-col gap-6">
+      <div className="flex-1 flex flex-col gap-2 sm:gap-4">
         <QueueCard 
           type="TELLER" 
           number={tellerNumber} 
@@ -311,7 +330,7 @@ const QueueDisplay = () => {
   );
 
   const Layout4 = () => (
-    <div className="flex gap-6 h-full">
+    <div className="flex gap-2 sm:gap-4 h-full">
       <QueueCard 
         type="TELLER" 
         number={tellerNumber} 
@@ -342,37 +361,65 @@ const QueueDisplay = () => {
   };
 
   return (
-    <div className="h-screen w-screen bg-white p-4 md:p-6 flex flex-col overflow-hidden">
+    <div className="h-[100dvh] w-screen bg-white p-2 sm:p-4 flex flex-col overflow-hidden box-border">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-4 shadow-lg">
-        <div className="flex items-center gap-4">
-          <img src={logoBank} alt="Logo" className="h-12 md:h-16" />
+      <div 
+        className="flex items-center justify-between bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-2 sm:p-3 shadow-lg shrink-0"
+        style={{ marginBottom: 'clamp(0.5rem, 1.5vmin, 1rem)' }}
+      >
+        <div className="flex items-center gap-2 sm:gap-4">
+          <img 
+            src={logoBank} 
+            alt="Logo" 
+            className="object-contain"
+            style={{ height: 'clamp(2rem, 6vmin, 4rem)' }}
+          />
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-white">{printConfig.bankName}</h1>
-            <p className="text-sm md:text-base text-blue-100">{printConfig.branchName}</p>
+            <h1 
+              className="font-bold text-white"
+              style={{ fontSize: 'clamp(0.75rem, 2vmin, 1.5rem)' }}
+            >
+              {printConfig.bankName}
+            </h1>
+            <p 
+              className="text-blue-100"
+              style={{ fontSize: 'clamp(0.5rem, 1.5vmin, 1rem)' }}
+            >
+              {printConfig.branchName}
+            </p>
           </div>
         </div>
-        <div className="text-right flex items-center gap-4">
+        <div className="text-right flex items-center gap-2 sm:gap-4">
           <div>
-            <p className="text-3xl md:text-5xl font-bold text-amber-300">{time}</p>
-            <p className="text-sm text-white/80">{currentDate}</p>
+            <p 
+              className="font-bold text-amber-300"
+              style={{ fontSize: 'clamp(1.25rem, 5vmin, 3rem)' }}
+            >
+              {time}
+            </p>
+            <p 
+              className="text-white/80"
+              style={{ fontSize: 'clamp(0.5rem, 1.2vmin, 0.875rem)' }}
+            >
+              {currentDate}
+            </p>
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1">
             <Button
               variant="ghost"
               size="icon"
-              className="text-white/80 hover:text-amber-300 hover:bg-white/10"
+              className="text-white/80 hover:text-amber-300 hover:bg-white/10 h-6 w-6 sm:h-8 sm:w-8"
               onClick={() => setSoundEnabled(!soundEnabled)}
             >
-              {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+              {soundEnabled ? <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" /> : <VolumeX className="h-4 w-4 sm:h-5 sm:w-5" />}
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="text-white/80 hover:text-amber-300 hover:bg-white/10"
+              className="text-white/80 hover:text-amber-300 hover:bg-white/10 h-6 w-6 sm:h-8 sm:w-8"
               onClick={toggleFullscreen}
             >
-              {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+              {isFullscreen ? <Minimize className="h-4 w-4 sm:h-5 sm:w-5" /> : <Maximize className="h-4 w-4 sm:h-5 sm:w-5" />}
             </Button>
           </div>
         </div>
@@ -385,10 +432,14 @@ const QueueDisplay = () => {
 
       {/* Running Text */}
       {tvConfig.showRunningText && tvConfig.runningText && (
-        <div className="mt-6 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 rounded-xl overflow-hidden shadow-lg">
-          <div className="py-3 px-4">
+        <div 
+          className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 rounded-lg overflow-hidden shadow-lg shrink-0"
+          style={{ marginTop: 'clamp(0.5rem, 1.5vmin, 1rem)' }}
+        >
+          <div className="py-1.5 sm:py-2 px-3">
             <motion.div
-              className="whitespace-nowrap text-white text-lg font-bold"
+              className="whitespace-nowrap text-white font-bold"
+              style={{ fontSize: 'clamp(0.75rem, 1.5vmin, 1.125rem)' }}
               animate={{ x: ['100%', '-100%'] }}
               transition={{
                 duration: parseInt(runningTextSpeed[tvConfig.runningTextSpeed]),
