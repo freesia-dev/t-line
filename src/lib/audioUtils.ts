@@ -1,6 +1,37 @@
-// Audio utilities for queue system with ElevenLabs TTS
+// Audio utilities for queue system with Indonesian TTS
 
 import { getVoiceConfig } from './queueStore';
+
+// Convert digit to Indonesian word
+const digitToIndonesian = (digit: string): string => {
+  const digitMap: Record<string, string> = {
+    '0': 'nol',
+    '1': 'satu',
+    '2': 'dua',
+    '3': 'tiga',
+    '4': 'empat',
+    '5': 'lima',
+    '6': 'enam',
+    '7': 'tujuh',
+    '8': 'delapan',
+    '9': 'sembilan',
+  };
+  return digitMap[digit] || digit;
+};
+
+// Convert queue number to spoken Indonesian (A001 → A nol nol satu)
+const formatQueueForSpeech = (queueNumber: string): string => {
+  const letter = queueNumber.charAt(0);
+  const numbers = queueNumber.slice(1);
+  
+  const spokenNumbers = numbers
+    .split('')
+    .map(digitToIndonesian)
+    .join(' ');
+  
+  return `${letter} ${spokenNumbers}`;
+};
+
 export const playDingSound = (): Promise<void> => {
   return new Promise((resolve) => {
     try {
@@ -51,16 +82,6 @@ export const playDingSound = (): Promise<void> => {
   });
 };
 
-// Speed mapping for ElevenLabs (0.7-1.2)
-const getElevenLabsSpeed = (speed: 'slow' | 'normal' | 'fast'): number => {
-  switch (speed) {
-    case 'slow': return 0.75;
-    case 'normal': return 0.9;
-    case 'fast': return 1.1;
-    default: return 0.9;
-  }
-};
-
 // Speed mapping for browser TTS (0.5-2.0)
 const getBrowserTTSSpeed = (speed: 'slow' | 'normal' | 'fast'): number => {
   switch (speed) {
@@ -71,55 +92,49 @@ const getBrowserTTSSpeed = (speed: 'slow' | 'normal' | 'fast'): number => {
   }
 };
 
-// ElevenLabs TTS announcement
-const playElevenLabsTTS = async (text: string, voiceId: string, speed: number): Promise<boolean> => {
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({ text, voiceId, speed }),
-      }
-    );
-
-    if (!response.ok) {
-      console.error('ElevenLabs TTS failed:', response.status);
-      return false;
-    }
-
-    const audioBlob = await response.blob();
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-    
-    return new Promise((resolve) => {
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        resolve(true);
-      };
-      audio.onerror = () => {
-        URL.revokeObjectURL(audioUrl);
-        resolve(false);
-      };
-      audio.play().catch(() => resolve(false));
-    });
-  } catch (error) {
-    console.error('ElevenLabs TTS error:', error);
-    return false;
-  }
+// Get available Indonesian voices
+export const getIndonesianVoices = (): SpeechSynthesisVoice[] => {
+  if (!('speechSynthesis' in window)) return [];
+  
+  const voices = window.speechSynthesis.getVoices();
+  return voices.filter(voice => 
+    voice.lang.startsWith('id') || 
+    voice.lang.startsWith('ID') ||
+    voice.name.toLowerCase().includes('indonesia')
+  );
 };
 
-// Fallback to browser TTS
-const playBrowserTTS = (text: string, speed: number): Promise<void> => {
+// Get all available voices for selection
+export const getAllVoices = (): SpeechSynthesisVoice[] => {
+  if (!('speechSynthesis' in window)) return [];
+  return window.speechSynthesis.getVoices();
+};
+
+// Browser TTS with voice selection
+const playBrowserTTS = (text: string, speed: number, voiceName?: string): Promise<void> => {
   return new Promise((resolve) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       
       const utterance = new SpeechSynthesisUtterance(text);
+      
+      // Try to find the selected voice
+      const voices = window.speechSynthesis.getVoices();
+      if (voiceName) {
+        const selectedVoice = voices.find(v => v.name === voiceName);
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+        }
+      }
+      
+      // Fallback to Indonesian voice if no voice selected
+      if (!utterance.voice) {
+        const indonesianVoice = voices.find(v => v.lang.startsWith('id'));
+        if (indonesianVoice) {
+          utterance.voice = indonesianVoice;
+        }
+      }
+      
       utterance.lang = 'id-ID';
       utterance.rate = speed;
       utterance.pitch = 1;
@@ -135,10 +150,13 @@ const playBrowserTTS = (text: string, speed: number): Promise<void> => {
   });
 };
 
-// Main announcement function with ElevenLabs TTS and fallback
+// Main announcement function with Indonesian pronunciation
 export const announceQueue = async (queueNumber: string, destination: string) => {
   const voiceConfig = getVoiceConfig();
-  const announcementText = `Nomor antrian ${queueNumber}, silakan menuju ${destination}`;
+  
+  // Format queue number for proper Indonesian pronunciation
+  const spokenQueueNumber = formatQueueForSpeech(queueNumber);
+  const announcementText = `Nomor antrian ${spokenQueueNumber}, silakan menuju ke ${destination}`;
   
   // Play ding first
   await playDingSound();
@@ -146,20 +164,7 @@ export const announceQueue = async (queueNumber: string, destination: string) =>
   // Small delay after ding
   await new Promise(resolve => setTimeout(resolve, 300));
   
-  // If browser TTS is preferred, use it directly
-  if (voiceConfig.useBrowserTTS) {
-    const browserSpeed = getBrowserTTSSpeed(voiceConfig.speed);
-    await playBrowserTTS(announcementText, browserSpeed);
-    return;
-  }
-  
-  // Try ElevenLabs TTS first, fallback to browser TTS
-  const elevenLabsSpeed = getElevenLabsSpeed(voiceConfig.speed);
-  const elevenLabsSuccess = await playElevenLabsTTS(announcementText, voiceConfig.voiceId, elevenLabsSpeed);
-  
-  if (!elevenLabsSuccess) {
-    console.log('Falling back to browser TTS');
-    const browserSpeed = getBrowserTTSSpeed(voiceConfig.speed);
-    await playBrowserTTS(announcementText, browserSpeed);
-  }
+  // Use browser TTS with proper Indonesian pronunciation
+  const browserSpeed = getBrowserTTSSpeed(voiceConfig.speed);
+  await playBrowserTTS(announcementText, browserSpeed, voiceConfig.voiceName);
 };

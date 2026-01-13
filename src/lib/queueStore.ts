@@ -35,31 +35,12 @@ export interface TVDisplayConfig {
 }
 
 export interface VoiceConfig {
-  voiceId: string;
   voiceName: string;
-  useBrowserTTS: boolean;
   speed: 'slow' | 'normal' | 'fast';
 }
 
-export const ELEVENLABS_VOICES = [
-  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel (Indonesia)' },
-  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George (British)' },
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah (American)' },
-  { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura (American)' },
-  { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie (Australian)' },
-  { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum (Transatlantic)' },
-  { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam (American)' },
-  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice (British)' },
-  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda (American)' },
-  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily (British)' },
-  { id: 'cjVigY5qzO86Huf0OWal', name: 'Eric (American)' },
-  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian (American)' },
-] as const;
-
 const DEFAULT_VOICE_CONFIG: VoiceConfig = {
-  voiceId: 'onwK4e9ZLuTAKqWW03F9',
-  voiceName: 'Daniel (Indonesia)',
-  useBrowserTTS: false,
+  voiceName: '',
   speed: 'normal',
 };
 
