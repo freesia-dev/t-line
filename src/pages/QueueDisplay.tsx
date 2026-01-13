@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { fetchQueueState, formatQueueNumber, subscribeToQueueState, QueueState, QueueStatus } from '@/lib/supabaseQueueStore';
 import { getPrintConfig, getTVDisplayConfig, PrintConfig, TVDisplayConfig } from '@/lib/queueStore';
 import { announceQueue } from '@/lib/audioUtils';
@@ -168,11 +168,11 @@ const QueueDisplay = () => {
             {isTeller ? 'TELLER' : 'CUSTOMER SERVICE'}
           </h2>
           
-          {/* Status Badge */}
-          <div className="flex justify-center my-1 sm:my-2">
+          {/* Status Badge - Made MUCH bigger */}
+          <div className="flex justify-center my-2 sm:my-3">
             <span 
-              className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-white font-semibold ${statusBadge.bg}`}
-              style={{ fontSize: 'clamp(0.625rem, 1.2vw, 0.875rem)' }}
+              className={`px-3 sm:px-6 py-1 sm:py-2 rounded-full text-white font-bold ${statusBadge.bg}`}
+              style={{ fontSize: 'clamp(0.875rem, 2.5vw, 1.5rem)' }}
             >
               {statusBadge.text}
             </span>
@@ -219,9 +219,22 @@ const QueueDisplay = () => {
     );
   };
 
+  // Slideshow state
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Slideshow effect
+  useEffect(() => {
+    if (tvConfig.mediaMode === 'slideshow' && tvConfig.slideshowImages.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % tvConfig.slideshowImages.length);
+      }, (tvConfig.slideshowInterval || 5) * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [tvConfig.mediaMode, tvConfig.slideshowImages, tvConfig.slideshowInterval]);
+
   // Media Component
   const MediaContent = () => {
-    if (!tvConfig.showMedia || !tvConfig.mediaUrl) {
+    if (!tvConfig.showMedia) {
       return (
         <div className="w-full h-full bg-gray-100 rounded-xl flex items-center justify-center border-2 border-gray-200">
           <p className="text-gray-400" style={{ fontSize: 'clamp(0.75rem, 1.5vw, 1rem)' }}>Tidak ada media</p>
@@ -229,7 +242,8 @@ const QueueDisplay = () => {
       );
     }
 
-    if (tvConfig.mediaType === 'video') {
+    // Video mode
+    if (tvConfig.mediaMode === 'video' && tvConfig.mediaUrl) {
       return (
         <video
           src={tvConfig.mediaUrl}
@@ -241,12 +255,53 @@ const QueueDisplay = () => {
       );
     }
 
+    // Slideshow mode
+    if (tvConfig.mediaMode === 'slideshow' && tvConfig.slideshowImages.length > 0) {
+      return (
+        <div className="w-full h-full relative rounded-xl overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.img
+              key={currentSlide}
+              src={tvConfig.slideshowImages[currentSlide]}
+              alt={`Slide ${currentSlide + 1}`}
+              className="w-full h-full object-cover absolute inset-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            />
+          </AnimatePresence>
+          {/* Slide indicators */}
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {tvConfig.slideshowImages.map((_, idx) => (
+              <div
+                key={idx}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  idx === currentSlide ? 'bg-white scale-125' : 'bg-white/50'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // Single image mode
+    if (tvConfig.mediaMode === 'single' && tvConfig.mediaUrl) {
+      return (
+        <img
+          src={tvConfig.mediaUrl}
+          alt="Promo"
+          className="w-full h-full object-cover rounded-xl"
+        />
+      );
+    }
+
+    // Fallback - no media configured
     return (
-      <img
-        src={tvConfig.mediaUrl}
-        alt="Promo"
-        className="w-full h-full object-cover rounded-xl"
-      />
+      <div className="w-full h-full bg-gray-100 rounded-xl flex items-center justify-center border-2 border-gray-200">
+        <p className="text-gray-400" style={{ fontSize: 'clamp(0.75rem, 1.5vw, 1rem)' }}>Tidak ada media</p>
+      </div>
     );
   };
 
@@ -433,13 +488,19 @@ const QueueDisplay = () => {
       {/* Running Text */}
       {tvConfig.showRunningText && tvConfig.runningText && (
         <div 
-          className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 rounded-lg overflow-hidden shadow-lg shrink-0"
-          style={{ marginTop: 'clamp(0.5rem, 1.5vmin, 1rem)' }}
+          className="rounded-lg overflow-hidden shadow-lg shrink-0"
+          style={{ 
+            marginTop: 'clamp(0.5rem, 1.5vmin, 1rem)',
+            backgroundColor: tvConfig.runningTextBgColor || '#f59e0b',
+          }}
         >
           <div className="py-1.5 sm:py-2 px-3">
             <motion.div
-              className="whitespace-nowrap text-white font-bold"
-              style={{ fontSize: 'clamp(0.75rem, 1.5vmin, 1.125rem)' }}
+              className="whitespace-nowrap font-bold"
+              style={{ 
+                fontSize: 'clamp(0.75rem, 1.5vmin, 1.125rem)',
+                color: tvConfig.runningTextColor || '#ffffff',
+              }}
               animate={{ x: ['100%', '-100%'] }}
               transition={{
                 duration: parseInt(runningTextSpeed[tvConfig.runningTextSpeed]),
