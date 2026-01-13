@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId = "onwK4e9ZLuTAKqWW03F9" } = await req.json(); // Daniel voice - clear Indonesian
+    const { text, voiceId = "onwK4e9ZLuTAKqWW03F9", speed = 0.9 } = await req.json(); // Daniel voice - clear Indonesian
     const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
 
     if (!ELEVENLABS_API_KEY) {
@@ -40,7 +40,7 @@ serve(async (req) => {
             similarity_boost: 0.75,
             style: 0.3,
             use_speaker_boost: true,
-            speed: 0.9,
+            speed: Number(speed),
           },
         }),
       }

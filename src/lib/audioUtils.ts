@@ -51,8 +51,28 @@ export const playDingSound = (): Promise<void> => {
   });
 };
 
+// Speed mapping for ElevenLabs (0.7-1.2)
+const getElevenLabsSpeed = (speed: 'slow' | 'normal' | 'fast'): number => {
+  switch (speed) {
+    case 'slow': return 0.75;
+    case 'normal': return 0.9;
+    case 'fast': return 1.1;
+    default: return 0.9;
+  }
+};
+
+// Speed mapping for browser TTS (0.5-2.0)
+const getBrowserTTSSpeed = (speed: 'slow' | 'normal' | 'fast'): number => {
+  switch (speed) {
+    case 'slow': return 0.7;
+    case 'normal': return 0.9;
+    case 'fast': return 1.2;
+    default: return 0.9;
+  }
+};
+
 // ElevenLabs TTS announcement
-const playElevenLabsTTS = async (text: string, voiceId: string): Promise<boolean> => {
+const playElevenLabsTTS = async (text: string, voiceId: string, speed: number): Promise<boolean> => {
   try {
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
@@ -63,7 +83,7 @@ const playElevenLabsTTS = async (text: string, voiceId: string): Promise<boolean
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ text, voiceId }),
+        body: JSON.stringify({ text, voiceId, speed }),
       }
     );
 
@@ -94,14 +114,14 @@ const playElevenLabsTTS = async (text: string, voiceId: string): Promise<boolean
 };
 
 // Fallback to browser TTS
-const playBrowserTTS = (text: string): Promise<void> => {
+const playBrowserTTS = (text: string, speed: number): Promise<void> => {
   return new Promise((resolve) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'id-ID';
-      utterance.rate = 0.9;
+      utterance.rate = speed;
       utterance.pitch = 1;
       utterance.volume = 1;
       
@@ -128,15 +148,18 @@ export const announceQueue = async (queueNumber: string, destination: string) =>
   
   // If browser TTS is preferred, use it directly
   if (voiceConfig.useBrowserTTS) {
-    await playBrowserTTS(announcementText);
+    const browserSpeed = getBrowserTTSSpeed(voiceConfig.speed);
+    await playBrowserTTS(announcementText, browserSpeed);
     return;
   }
   
   // Try ElevenLabs TTS first, fallback to browser TTS
-  const elevenLabsSuccess = await playElevenLabsTTS(announcementText, voiceConfig.voiceId);
+  const elevenLabsSpeed = getElevenLabsSpeed(voiceConfig.speed);
+  const elevenLabsSuccess = await playElevenLabsTTS(announcementText, voiceConfig.voiceId, elevenLabsSpeed);
   
   if (!elevenLabsSuccess) {
     console.log('Falling back to browser TTS');
-    await playBrowserTTS(announcementText);
+    const browserSpeed = getBrowserTTSSpeed(voiceConfig.speed);
+    await playBrowserTTS(announcementText, browserSpeed);
   }
 };
