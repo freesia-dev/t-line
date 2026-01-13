@@ -18,19 +18,24 @@ import {
   saveDisplayConfig,
   getTVDisplayConfig,
   saveTVDisplayConfig,
+  getVoiceConfig,
+  saveVoiceConfig,
   getQueueState,
   resetQueue,
   PrintConfig,
   DisplayConfig,
   TVDisplayConfig,
+  VoiceConfig,
+  ELEVENLABS_VOICES,
 } from '@/lib/queueStore';
 import { toast } from 'sonner';
-import { RotateCcw, Save, Printer, Monitor, Tv, ExternalLink } from 'lucide-react';
+import { RotateCcw, Save, Printer, Monitor, Tv, ExternalLink, Volume2 } from 'lucide-react';
 
 const Konfigurasi = () => {
   const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
   const [displayConfig, setDisplayConfig] = useState<DisplayConfig>(getDisplayConfig());
   const [tvConfig, setTVConfig] = useState<TVDisplayConfig>(getTVDisplayConfig());
+  const [voiceConfig, setVoiceConfig] = useState<VoiceConfig>(getVoiceConfig());
   const [queueState, setQueueState] = useState(getQueueState());
 
   useEffect(() => {
@@ -50,6 +55,16 @@ const Konfigurasi = () => {
   const handleSaveTVConfig = () => {
     saveTVDisplayConfig(tvConfig);
     toast.success('Konfigurasi display TV berhasil disimpan');
+  };
+
+  const handleSaveVoiceConfig = () => {
+    saveVoiceConfig(voiceConfig);
+    toast.success('Konfigurasi suara berhasil disimpan');
+  };
+
+  const handleTestVoice = async () => {
+    const { announceQueue } = await import('@/lib/audioUtils');
+    await announceQueue('A001', 'Teller 1');
   };
 
   const handleResetQueue = () => {
@@ -86,7 +101,7 @@ const Konfigurasi = () => {
           transition={{ duration: 0.5, delay: 0.1 }}
         >
           <Tabs defaultValue="display" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="display" className="gap-2">
                 <Monitor size={16} />
                 Kiosk
@@ -94,6 +109,10 @@ const Konfigurasi = () => {
               <TabsTrigger value="tv" className="gap-2">
                 <Tv size={16} />
                 Display TV
+              </TabsTrigger>
+              <TabsTrigger value="voice" className="gap-2">
+                <Volume2 size={16} />
+                Suara
               </TabsTrigger>
               <TabsTrigger value="print" className="gap-2">
                 <Printer size={16} />
@@ -331,6 +350,83 @@ const Konfigurasi = () => {
                   <Button onClick={handleSaveTVConfig} className="w-full gap-2">
                     <Save size={18} />
                     Simpan Pengaturan Display TV
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="voice">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pengaturan Suara</CardTitle>
+                  <CardDescription>
+                    Kustomisasi suara panggilan antrian menggunakan ElevenLabs TTS
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="useBrowserTTS">Gunakan Browser TTS</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Gunakan TTS bawaan browser (gratis, kualitas standar)
+                      </p>
+                    </div>
+                    <Switch
+                      id="useBrowserTTS"
+                      checked={voiceConfig.useBrowserTTS}
+                      onCheckedChange={(checked) =>
+                        setVoiceConfig({ ...voiceConfig, useBrowserTTS: checked })
+                      }
+                    />
+                  </div>
+
+                  {!voiceConfig.useBrowserTTS && (
+                    <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+                      <div className="space-y-2">
+                        <Label>Pilih Suara ElevenLabs</Label>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Suara AI berkualitas tinggi untuk panggilan antrian
+                        </p>
+                        <Select
+                          value={voiceConfig.voiceId}
+                          onValueChange={(value) => {
+                            const voice = ELEVENLABS_VOICES.find(v => v.id === value);
+                            setVoiceConfig({
+                              ...voiceConfig,
+                              voiceId: value,
+                              voiceName: voice?.name || 'Unknown',
+                            });
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih suara..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ELEVENLABS_VOICES.map((voice) => (
+                              <SelectItem key={voice.id} value={voice.id}>
+                                {voice.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="pt-2">
+                        <Button
+                          variant="outline"
+                          onClick={handleTestVoice}
+                          className="w-full gap-2"
+                        >
+                          <Volume2 size={18} />
+                          Test Suara
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <Button onClick={handleSaveVoiceConfig} className="w-full gap-2">
+                    <Save size={18} />
+                    Simpan Pengaturan Suara
                   </Button>
                 </CardContent>
               </Card>
