@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { fetchQueueState, formatQueueNumber, subscribeToQueueState, QueueState } from '@/lib/supabaseQueueStore';
+import { fetchQueueState, formatQueueNumber, subscribeToQueueState, QueueState, QueueStatus, getStatusText } from '@/lib/supabaseQueueStore';
 import { getPrintConfig, getTVDisplayConfig, PrintConfig, TVDisplayConfig } from '@/lib/queueStore';
 import { announceQueue } from '@/lib/audioUtils';
 import logoBank from '@/assets/logo-bankaltimtara.png';
@@ -110,8 +110,8 @@ const QueueDisplay = () => {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-screen bg-gradient-to-br from-[#001F3F] via-[#003D7A] to-[#002B57] flex items-center justify-center">
-        <Loader2 className="h-12 w-12 text-white animate-spin" />
+      <div className="h-screen w-screen bg-white flex items-center justify-center">
+        <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
       </div>
     );
   }
@@ -132,23 +132,41 @@ const QueueDisplay = () => {
     fast: '10s',
   };
 
+  // Get status badge color and text
+  const getStatusBadge = (status: QueueStatus) => {
+    switch (status) {
+      case 'serving': 
+        return { bg: 'bg-green-500', text: 'Sedang Dilayani' };
+      case 'calling': 
+        return { bg: 'bg-yellow-500', text: 'Memanggil' };
+      case 'repeat': 
+        return { bg: 'bg-orange-500', text: 'Panggilan Ulang' };
+      case 'break': 
+        return { bg: 'bg-red-500', text: 'Istirahat' };
+      default: 
+        return { bg: 'bg-gray-400', text: 'Menunggu' };
+    }
+  };
+
   // Queue Card Component
-  const QueueCard = ({ type, number, flash, waiting, total }: { 
+  const QueueCard = ({ type, number, flash, waiting, total, status }: { 
     type: 'TELLER' | 'CS'; 
     number: string; 
     flash: boolean; 
     waiting: number; 
     total: number;
+    status: QueueStatus;
   }) => {
     const isTeller = type === 'TELLER';
+    const statusBadge = getStatusBadge(status);
     
     const bgClass = flash 
-      ? (isTeller ? 'bg-gradient-to-br from-[#D4AF37] to-[#B8960C]' : 'bg-gradient-to-br from-[#0052A3] to-[#003D7A]')
-      : (isTeller ? 'bg-gradient-to-br from-[#C5A028] to-[#A68A1E]' : 'bg-gradient-to-br from-[#003D7A] to-[#002B57]');
+      ? (isTeller ? 'bg-gradient-to-br from-amber-400 to-amber-500' : 'bg-gradient-to-br from-blue-400 to-blue-500')
+      : (isTeller ? 'bg-gradient-to-br from-amber-500 to-amber-600' : 'bg-gradient-to-br from-blue-500 to-blue-600');
 
     return (
       <motion.div
-        className={`rounded-3xl p-6 md:p-8 ${bgClass} shadow-2xl h-full flex flex-col justify-center border-4 ${isTeller ? 'border-[#D4AF37]/30' : 'border-white/20'}`}
+        className={`rounded-3xl p-6 md:p-8 ${bgClass} shadow-2xl h-full flex flex-col justify-center`}
         animate={flash ? { scale: [1, 1.02, 1] } : {}}
         transition={{ duration: 0.5, repeat: flash ? Infinity : 0 }}
       >
@@ -156,17 +174,24 @@ const QueueDisplay = () => {
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 drop-shadow-lg">
             {isTeller ? 'TELLER' : 'CUSTOMER SERVICE'}
           </h2>
-          <p className={`text-lg mb-4 ${isTeller ? 'text-amber-100' : 'text-blue-100'}`}>Sedang Dilayani</p>
+          
+          {/* Status Badge */}
+          <div className="flex justify-center mb-4">
+            <span className={`px-4 py-1 rounded-full text-white text-sm font-semibold ${statusBadge.bg}`}>
+              {statusBadge.text}
+            </span>
+          </div>
+
           <div className="text-[4rem] sm:text-[5rem] md:text-[6rem] lg:text-[8rem] xl:text-[10rem] font-black text-white leading-none drop-shadow-xl">
             {number}
           </div>
           <div className="mt-4 flex justify-center gap-6">
             <div className="text-center">
-              <p className={`text-sm ${isTeller ? 'text-amber-100' : 'text-blue-100'}`}>Menunggu</p>
+              <p className="text-sm text-white/80">Menunggu</p>
               <p className="text-2xl md:text-3xl font-bold text-white">{waiting}</p>
             </div>
             <div className="text-center">
-              <p className={`text-sm ${isTeller ? 'text-amber-100' : 'text-blue-100'}`}>Total</p>
+              <p className="text-sm text-white/80">Total</p>
               <p className="text-2xl md:text-3xl font-bold text-white">{total}</p>
             </div>
           </div>
@@ -179,8 +204,8 @@ const QueueDisplay = () => {
   const MediaContent = () => {
     if (!tvConfig.showMedia || !tvConfig.mediaUrl) {
       return (
-        <div className="w-full h-full bg-[#002B57] rounded-2xl flex items-center justify-center border-2 border-[#D4AF37]/30">
-          <p className="text-[#D4AF37]/50 text-lg">Tidak ada media</p>
+        <div className="w-full h-full bg-gray-100 rounded-2xl flex items-center justify-center border-2 border-gray-200">
+          <p className="text-gray-400 text-lg">Tidak ada media</p>
         </div>
       );
     }
@@ -216,6 +241,7 @@ const QueueDisplay = () => {
           flash={flashTeller}
           waiting={queueState ? Math.max(0, queueState.teller_queue - queueState.teller_serving) : 0}
           total={queueState?.teller_queue || 0}
+          status={queueState?.teller_status || 'idle'}
         />
         <QueueCard 
           type="CS" 
@@ -223,6 +249,7 @@ const QueueDisplay = () => {
           flash={flashCS}
           waiting={queueState ? Math.max(0, queueState.cs_queue - queueState.cs_serving) : 0}
           total={queueState?.cs_queue || 0}
+          status={queueState?.cs_status || 'idle'}
         />
       </div>
       <div className="w-1/2">
@@ -240,6 +267,7 @@ const QueueDisplay = () => {
           flash={flashTeller}
           waiting={queueState ? Math.max(0, queueState.teller_queue - queueState.teller_serving) : 0}
           total={queueState?.teller_queue || 0}
+          status={queueState?.teller_status || 'idle'}
         />
         <QueueCard 
           type="CS" 
@@ -247,6 +275,7 @@ const QueueDisplay = () => {
           flash={flashCS}
           waiting={queueState ? Math.max(0, queueState.cs_queue - queueState.cs_serving) : 0}
           total={queueState?.cs_queue || 0}
+          status={queueState?.cs_status || 'idle'}
         />
       </div>
       <div className="h-1/3">
@@ -267,6 +296,7 @@ const QueueDisplay = () => {
           flash={flashTeller}
           waiting={queueState ? Math.max(0, queueState.teller_queue - queueState.teller_serving) : 0}
           total={queueState?.teller_queue || 0}
+          status={queueState?.teller_status || 'idle'}
         />
         <QueueCard 
           type="CS" 
@@ -274,6 +304,7 @@ const QueueDisplay = () => {
           flash={flashCS}
           waiting={queueState ? Math.max(0, queueState.cs_queue - queueState.cs_serving) : 0}
           total={queueState?.cs_queue || 0}
+          status={queueState?.cs_status || 'idle'}
         />
       </div>
     </div>
@@ -287,6 +318,7 @@ const QueueDisplay = () => {
         flash={flashTeller}
         waiting={queueState ? Math.max(0, queueState.teller_queue - queueState.teller_serving) : 0}
         total={queueState?.teller_queue || 0}
+        status={queueState?.teller_status || 'idle'}
       />
       <QueueCard 
         type="CS" 
@@ -294,6 +326,7 @@ const QueueDisplay = () => {
         flash={flashCS}
         waiting={queueState ? Math.max(0, queueState.cs_queue - queueState.cs_serving) : 0}
         total={queueState?.cs_queue || 0}
+        status={queueState?.cs_status || 'idle'}
       />
     </div>
   );
@@ -309,26 +342,26 @@ const QueueDisplay = () => {
   };
 
   return (
-    <div className="h-screen w-screen bg-gradient-to-br from-[#001F3F] via-[#003D7A] to-[#002B57] p-4 md:p-6 flex flex-col overflow-hidden">
+    <div className="h-screen w-screen bg-white p-4 md:p-6 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+      <div className="flex items-center justify-between mb-6 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-4 shadow-lg">
         <div className="flex items-center gap-4">
           <img src={logoBank} alt="Logo" className="h-12 md:h-16" />
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-white">{printConfig.bankName}</h1>
-            <p className="text-sm md:text-base text-[#D4AF37]">{printConfig.branchName}</p>
+            <p className="text-sm md:text-base text-blue-100">{printConfig.branchName}</p>
           </div>
         </div>
         <div className="text-right flex items-center gap-4">
           <div>
-            <p className="text-3xl md:text-5xl font-bold text-[#D4AF37]">{time}</p>
+            <p className="text-3xl md:text-5xl font-bold text-amber-300">{time}</p>
             <p className="text-sm text-white/80">{currentDate}</p>
           </div>
           <div className="flex flex-col gap-2">
             <Button
               variant="ghost"
               size="icon"
-              className="text-white/80 hover:text-[#D4AF37] hover:bg-white/10"
+              className="text-white/80 hover:text-amber-300 hover:bg-white/10"
               onClick={() => setSoundEnabled(!soundEnabled)}
             >
               {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
@@ -336,7 +369,7 @@ const QueueDisplay = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="text-white/80 hover:text-[#D4AF37] hover:bg-white/10"
+              className="text-white/80 hover:text-amber-300 hover:bg-white/10"
               onClick={toggleFullscreen}
             >
               {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
@@ -352,10 +385,10 @@ const QueueDisplay = () => {
 
       {/* Running Text */}
       {tvConfig.showRunningText && tvConfig.runningText && (
-        <div className="mt-6 bg-gradient-to-r from-[#C5A028] via-[#D4AF37] to-[#C5A028] rounded-xl overflow-hidden border-2 border-[#D4AF37]/50">
+        <div className="mt-6 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 rounded-xl overflow-hidden shadow-lg">
           <div className="py-3 px-4">
             <motion.div
-              className="whitespace-nowrap text-[#001F3F] text-lg font-bold"
+              className="whitespace-nowrap text-white text-lg font-bold"
               animate={{ x: ['100%', '-100%'] }}
               transition={{
                 duration: parseInt(runningTextSpeed[tvConfig.runningTextSpeed]),

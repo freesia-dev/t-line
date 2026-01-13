@@ -1,12 +1,16 @@
 // Queue management with Supabase real-time sync
 import { supabase } from "@/integrations/supabase/client";
 
+export type QueueStatus = 'idle' | 'serving' | 'calling' | 'repeat' | 'break';
+
 export interface QueueState {
   id: string;
   cs_queue: number;
   teller_queue: number;
   cs_serving: number;
   teller_serving: number;
+  cs_status: QueueStatus;
+  teller_status: QueueStatus;
   last_reset_date: string;
   last_called_type: string | null;
   last_called_number: number | null;
@@ -36,6 +40,8 @@ export const fetchQueueState = async (): Promise<QueueState | null> => {
         teller_queue: 0,
         cs_serving: 0,
         teller_serving: 0,
+        cs_status: 'idle',
+        teller_status: 'idle',
         last_reset_date: today,
         last_called_type: null,
         last_called_number: null,
@@ -47,12 +53,12 @@ export const fetchQueueState = async (): Promise<QueueState | null> => {
     
     if (resetError) {
       console.error('Error resetting queue state:', resetError);
-      return data;
+      return data as QueueState;
     }
-    return resetData;
+    return resetData as QueueState;
   }
   
-  return data;
+  return data as QueueState;
 };
 
 // Take CS queue number
@@ -116,6 +122,7 @@ export const callNextCS = async (): Promise<{ number: number; remaining: number 
     .from('queue_state')
     .update({
       cs_serving: newServing,
+      cs_status: 'calling',
       last_called_type: 'CS',
       last_called_number: newServing,
       last_called_at: new Date().toISOString(),
@@ -148,6 +155,7 @@ export const callNextTeller = async (): Promise<{ number: number; remaining: num
     .from('queue_state')
     .update({
       teller_serving: newServing,
+      teller_status: 'calling',
       last_called_type: 'TELLER',
       last_called_number: newServing,
       last_called_at: new Date().toISOString(),
@@ -165,6 +173,168 @@ export const callNextTeller = async (): Promise<{ number: number; remaining: num
   };
 };
 
+// Skip current CS queue (move to next without serving)
+export const skipCSQueue = async (): Promise<boolean> => {
+  const state = await fetchQueueState();
+  if (!state) return false;
+  
+  if (state.cs_serving >= state.cs_queue) {
+    return false; // No one to skip
+  }
+  
+  const newServing = state.cs_serving + 1;
+  
+  const { error } = await supabase
+    .from('queue_state')
+    .update({
+      cs_serving: newServing,
+      cs_status: 'idle',
+    })
+    .eq('id', state.id);
+  
+  if (error) {
+    console.error('Error skipping CS queue:', error);
+    return false;
+  }
+  
+  return true;
+};
+
+// Skip current Teller queue (move to next without serving)
+export const skipTellerQueue = async (): Promise<boolean> => {
+  const state = await fetchQueueState();
+  if (!state) return false;
+  
+  if (state.teller_serving >= state.teller_queue) {
+    return false; // No one to skip
+  }
+  
+  const newServing = state.teller_serving + 1;
+  
+  const { error } = await supabase
+    .from('queue_state')
+    .update({
+      teller_serving: newServing,
+      teller_status: 'idle',
+    })
+    .eq('id', state.id);
+  
+  if (error) {
+    console.error('Error skipping Teller queue:', error);
+    return false;
+  }
+  
+  return true;
+};
+
+// Start serving CS
+export const startServingCS = async (): Promise<boolean> => {
+  const state = await fetchQueueState();
+  if (!state) return false;
+  
+  const { error } = await supabase
+    .from('queue_state')
+    .update({ cs_status: 'serving' })
+    .eq('id', state.id);
+  
+  if (error) {
+    console.error('Error starting CS serving:', error);
+    return false;
+  }
+  
+  return true;
+};
+
+// Start serving Teller
+export const startServingTeller = async (): Promise<boolean> => {
+  const state = await fetchQueueState();
+  if (!state) return false;
+  
+  const { error } = await supabase
+    .from('queue_state')
+    .update({ teller_status: 'serving' })
+    .eq('id', state.id);
+  
+  if (error) {
+    console.error('Error starting Teller serving:', error);
+    return false;
+  }
+  
+  return true;
+};
+
+// Finish serving CS
+export const finishServingCS = async (): Promise<boolean> => {
+  const state = await fetchQueueState();
+  if (!state) return false;
+  
+  const { error } = await supabase
+    .from('queue_state')
+    .update({ cs_status: 'idle' })
+    .eq('id', state.id);
+  
+  if (error) {
+    console.error('Error finishing CS serving:', error);
+    return false;
+  }
+  
+  return true;
+};
+
+// Finish serving Teller
+export const finishServingTeller = async (): Promise<boolean> => {
+  const state = await fetchQueueState();
+  if (!state) return false;
+  
+  const { error } = await supabase
+    .from('queue_state')
+    .update({ teller_status: 'idle' })
+    .eq('id', state.id);
+  
+  if (error) {
+    console.error('Error finishing Teller serving:', error);
+    return false;
+  }
+  
+  return true;
+};
+
+// Set CS break status
+export const setCSBreak = async (isBreak: boolean): Promise<boolean> => {
+  const state = await fetchQueueState();
+  if (!state) return false;
+  
+  const { error } = await supabase
+    .from('queue_state')
+    .update({ cs_status: isBreak ? 'break' : 'idle' })
+    .eq('id', state.id);
+  
+  if (error) {
+    console.error('Error setting CS break:', error);
+    return false;
+  }
+  
+  return true;
+};
+
+// Set Teller break status
+export const setTellerBreak = async (isBreak: boolean): Promise<boolean> => {
+  const state = await fetchQueueState();
+  if (!state) return false;
+  
+  const { error } = await supabase
+    .from('queue_state')
+    .update({ teller_status: isBreak ? 'break' : 'idle' })
+    .eq('id', state.id);
+  
+  if (error) {
+    console.error('Error setting Teller break:', error);
+    return false;
+  }
+  
+  return true;
+};
+
 // Repeat last call - triggers sound on display by updating last_called_at
 export const repeatLastCall = async (
   type: 'CS' | 'TELLER',
@@ -173,9 +343,14 @@ export const repeatLastCall = async (
   const state = await fetchQueueState();
   if (!state) return false;
   
+  const statusUpdate = type === 'CS' 
+    ? { cs_status: 'repeat' as QueueStatus }
+    : { teller_status: 'repeat' as QueueStatus };
+  
   const { error } = await supabase
     .from('queue_state')
     .update({
+      ...statusUpdate,
       last_called_type: type,
       last_called_number: number,
       last_called_at: new Date().toISOString(),
@@ -201,6 +376,8 @@ export const resetQueue = async (): Promise<boolean> => {
       teller_queue: 0,
       cs_serving: 0,
       teller_serving: 0,
+      cs_status: 'idle',
+      teller_status: 'idle',
       last_reset_date: new Date().toISOString().split('T')[0],
       last_called_type: null,
       last_called_number: null,
@@ -225,7 +402,7 @@ export const subscribeToQueueState = (
     .on(
       'postgres_changes',
       {
-        event: 'UPDATE',
+        event: '*',
         schema: 'public',
         table: 'queue_state',
       },
@@ -243,4 +420,16 @@ export const subscribeToQueueState = (
 export const formatQueueNumber = (type: 'CS' | 'TELLER', number: number): string => {
   const prefix = type === 'TELLER' ? 'A' : 'B';
   return `${prefix}${String(number).padStart(3, '0')}`;
+};
+
+// Get status display text in Indonesian
+export const getStatusText = (status: QueueStatus): string => {
+  switch (status) {
+    case 'idle': return 'Menunggu';
+    case 'serving': return 'Sedang Dilayani';
+    case 'calling': return 'Memanggil';
+    case 'repeat': return 'Panggilan Ulang';
+    case 'break': return 'Istirahat';
+    default: return 'Menunggu';
+  }
 };

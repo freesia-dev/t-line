@@ -46,6 +46,7 @@ export type Database = {
           created_at: string
           cs_queue: number
           cs_serving: number
+          cs_status: string
           id: string
           last_called_at: string | null
           last_called_number: number | null
@@ -53,12 +54,14 @@ export type Database = {
           last_reset_date: string
           teller_queue: number
           teller_serving: number
+          teller_status: string
           updated_at: string
         }
         Insert: {
           created_at?: string
           cs_queue?: number
           cs_serving?: number
+          cs_status?: string
           id?: string
           last_called_at?: string | null
           last_called_number?: number | null
@@ -66,12 +69,14 @@ export type Database = {
           last_reset_date?: string
           teller_queue?: number
           teller_serving?: number
+          teller_status?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
           cs_queue?: number
           cs_serving?: number
+          cs_status?: string
           id?: string
           last_called_at?: string | null
           last_called_number?: number | null
@@ -79,6 +84,7 @@ export type Database = {
           last_reset_date?: string
           teller_queue?: number
           teller_serving?: number
+          teller_status?: string
           updated_at?: string
         }
         Relationships: []
