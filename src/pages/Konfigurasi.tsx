@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LayoutPreview from '@/components/DisplayLayoutPreview';
 import MediaUploader from '@/components/MediaUploader';
+import SlideshowSelector from '@/components/SlideshowSelector';
 import {
   getPrintConfig,
   savePrintConfig,
@@ -263,45 +264,82 @@ const Konfigurasi = () => {
 
                     {tvConfig.showMedia && (
                       <>
+                        {/* Media Mode Selection */}
                         <div className="space-y-2">
-                          <Label>Pilih Media</Label>
-                          <MediaUploader
-                            selectedUrl={tvConfig.mediaUrl}
-                            onSelect={(url, type) =>
-                              setTVConfig({ ...tvConfig, mediaUrl: url, mediaType: type })
-                            }
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Tipe Media Terpilih</Label>
+                          <Label>Mode Media</Label>
                           <Select
-                            value={tvConfig.mediaType}
-                            onValueChange={(value: 'image' | 'video') =>
-                              setTVConfig({ ...tvConfig, mediaType: value })
+                            value={tvConfig.mediaMode || 'single'}
+                            onValueChange={(value: 'single' | 'slideshow' | 'video') =>
+                              setTVConfig({ ...tvConfig, mediaMode: value })
                             }
                           >
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="image">Gambar/Poster</SelectItem>
+                              <SelectItem value="single">Gambar Tunggal</SelectItem>
+                              <SelectItem value="slideshow">Slideshow</SelectItem>
                               <SelectItem value="video">Video</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="mediaUrl">Atau masukkan URL Media</Label>
-                          <Input
-                            id="mediaUrl"
-                            value={tvConfig.mediaUrl}
-                            onChange={(e) =>
-                              setTVConfig({ ...tvConfig, mediaUrl: e.target.value })
-                            }
-                            placeholder="https://example.com/poster.jpg"
-                          />
-                        </div>
+                        {/* Single Image / Video Mode */}
+                        {(tvConfig.mediaMode === 'single' || tvConfig.mediaMode === 'video') && (
+                          <div className="space-y-3">
+                            <Label>Pilih {tvConfig.mediaMode === 'video' ? 'Video' : 'Gambar'}</Label>
+                            <MediaUploader
+                              selectedUrl={tvConfig.mediaUrl}
+                              onSelect={(url, type) =>
+                                setTVConfig({ ...tvConfig, mediaUrl: url, mediaType: type })
+                              }
+                            />
+                            <div className="space-y-2">
+                              <Label htmlFor="mediaUrl">Atau masukkan URL</Label>
+                              <Input
+                                id="mediaUrl"
+                                value={tvConfig.mediaUrl}
+                                onChange={(e) =>
+                                  setTVConfig({ ...tvConfig, mediaUrl: e.target.value })
+                                }
+                                placeholder={tvConfig.mediaMode === 'video' ? 'https://example.com/video.mp4' : 'https://example.com/image.jpg'}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Slideshow Mode */}
+                        {tvConfig.mediaMode === 'slideshow' && (
+                          <div className="space-y-3">
+                            <Label>Pilih Gambar untuk Slideshow</Label>
+                            <SlideshowSelector
+                              selectedImages={tvConfig.slideshowImages || []}
+                              onSelect={(images) =>
+                                setTVConfig({ ...tvConfig, slideshowImages: images })
+                              }
+                            />
+                            <div className="space-y-2">
+                              <Label>Interval Slideshow (detik)</Label>
+                              <Select
+                                value={String(tvConfig.slideshowInterval || 5)}
+                                onValueChange={(value) =>
+                                  setTVConfig({ ...tvConfig, slideshowInterval: parseInt(value) })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="3">3 detik</SelectItem>
+                                  <SelectItem value="5">5 detik</SelectItem>
+                                  <SelectItem value="10">10 detik</SelectItem>
+                                  <SelectItem value="15">15 detik</SelectItem>
+                                  <SelectItem value="30">30 detik</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -337,6 +375,65 @@ const Konfigurasi = () => {
                             placeholder="Suku Bunga Deposito: 1 Bulan 3.25% | 3 Bulan 3.50%..."
                             rows={3}
                           />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Warna Teks</Label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={tvConfig.runningTextColor || '#ffffff'}
+                                onChange={(e) =>
+                                  setTVConfig({ ...tvConfig, runningTextColor: e.target.value })
+                                }
+                                className="w-10 h-10 rounded cursor-pointer border"
+                              />
+                              <Input
+                                value={tvConfig.runningTextColor || '#ffffff'}
+                                onChange={(e) =>
+                                  setTVConfig({ ...tvConfig, runningTextColor: e.target.value })
+                                }
+                                placeholder="#ffffff"
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Warna Background</Label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={tvConfig.runningTextBgColor || '#f59e0b'}
+                                onChange={(e) =>
+                                  setTVConfig({ ...tvConfig, runningTextBgColor: e.target.value })
+                                }
+                                className="w-10 h-10 rounded cursor-pointer border"
+                              />
+                              <Input
+                                value={tvConfig.runningTextBgColor || '#f59e0b'}
+                                onChange={(e) =>
+                                  setTVConfig({ ...tvConfig, runningTextBgColor: e.target.value })
+                                }
+                                placeholder="#f59e0b"
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Preview */}
+                        <div className="space-y-2">
+                          <Label>Preview Running Text</Label>
+                          <div 
+                            className="rounded-lg p-2 text-center font-bold"
+                            style={{
+                              backgroundColor: tvConfig.runningTextBgColor || '#f59e0b',
+                              color: tvConfig.runningTextColor || '#ffffff',
+                            }}
+                          >
+                            📢 Preview Running Text
+                          </div>
                         </div>
 
                         <div className="space-y-2">

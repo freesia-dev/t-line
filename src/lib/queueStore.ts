@@ -29,9 +29,14 @@ export interface TVDisplayConfig {
   showMedia: boolean;
   mediaType: 'image' | 'video';
   mediaUrl: string;
+  mediaMode: 'single' | 'slideshow' | 'video';
+  slideshowImages: string[];
+  slideshowInterval: number;
   showRunningText: boolean;
   runningText: string;
   runningTextSpeed: 'slow' | 'medium' | 'fast';
+  runningTextColor: string;
+  runningTextBgColor: string;
 }
 
 export interface VoiceConfig {
@@ -73,9 +78,14 @@ const DEFAULT_TV_DISPLAY_CONFIG: TVDisplayConfig = {
   showMedia: true,
   mediaType: 'image',
   mediaUrl: '',
+  mediaMode: 'single',
+  slideshowImages: [],
+  slideshowInterval: 5,
   showRunningText: true,
   runningText: 'Suku Bunga Deposito: 1 Bulan 3.25% | 3 Bulan 3.50% | 6 Bulan 3.75% | 12 Bulan 4.00% | Tabungan Simpeda 1.00% | Giro 0.50%',
   runningTextSpeed: 'medium',
+  runningTextColor: '#ffffff',
+  runningTextBgColor: '#f59e0b',
 };
 
 export const getQueueState = (): QueueState => {
