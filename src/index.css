@@ -142,18 +142,30 @@
 }
 
 /* Print styles for thermal printer */
+@page {
+  size: 58mm auto;
+  margin: 0;
+  padding: 0;
+}
+
 @media print {
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
   }
 
   html, body {
+    width: 58mm !important;
+    min-height: auto !important;
+    height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
     font-family: 'Arial', 'Helvetica', sans-serif !important;
-    font-size: 12pt !important;
-    line-height: 1.3 !important;
+    font-size: 10pt !important;
+    line-height: 1.2 !important;
     background: white !important;
     color: black !important;
   }
@@ -172,7 +184,12 @@
   #print-ticket-container {
     display: block !important;
     visibility: visible !important;
-    position: static !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 58mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   /* 80mm paper size */
@@ -183,7 +200,8 @@
   .print-ticket-80mm {
     width: 76mm !important;
     max-width: 76mm !important;
-    padding: 3mm !important;
+    padding: 2mm !important;
+    margin: 0 !important;
   }
 
   /* 58mm paper size */
@@ -194,12 +212,14 @@
   .print-ticket-58mm {
     width: 54mm !important;
     max-width: 54mm !important;
-    padding: 2mm !important;
+    padding: 1mm 2mm !important;
+    margin: 0 !important;
   }
 
   .print-ticket {
     display: block !important;
-    margin: 0 auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
     text-align: center !important;
     background: white !important;
     color: black !important;
@@ -207,115 +227,124 @@
 
   /* Header Section - Logo */
   .print-header-section {
-    margin-bottom: 2mm;
+    margin-bottom: 1mm;
+    padding: 0 !important;
   }
 
   .print-logo {
     width: auto !important;
-    height: 12mm !important;
+    height: 8mm !important;
     max-width: 100% !important;
-    margin: 0 auto 2mm auto !important;
+    margin: 0 auto 1mm auto !important;
     display: block !important;
   }
 
   .print-ticket-58mm .print-logo {
-    height: 10mm !important;
+    height: 7mm !important;
   }
 
   .print-bank-name {
-    font-size: 8pt !important;
+    font-size: 7pt !important;
     font-weight: 400 !important;
-    line-height: 1.3;
-    margin-bottom: 1mm;
+    line-height: 1.2;
+    margin-bottom: 0.5mm;
+    padding: 0 !important;
   }
 
   .print-ticket-58mm .print-bank-name {
-    font-size: 7pt !important;
+    font-size: 6pt !important;
   }
 
   .print-branch-name {
-    font-size: 10pt !important;
+    font-size: 8pt !important;
     font-weight: 700 !important;
-    margin-bottom: 2mm;
+    margin-bottom: 1mm;
+    padding: 0 !important;
   }
 
   .print-ticket-58mm .print-branch-name {
-    font-size: 8pt !important;
+    font-size: 7pt !important;
   }
 
   /* Separator Line */
   .print-separator {
     border: none !important;
     border-top: 1px dashed #000 !important;
-    margin: 3mm 0 !important;
+    margin: 1mm 0 !important;
     height: 0 !important;
+    padding: 0 !important;
   }
 
   .print-ticket-58mm .print-separator {
-    margin: 2mm 0 !important;
+    margin: 1mm 0 !important;
   }
 
   /* DateTime Section */
   .print-datetime-section {
-    padding: 2mm 0;
+    padding: 1mm 0 !important;
   }
 
   .print-date {
-    font-size: 10pt !important;
+    font-size: 8pt !important;
     font-weight: 400 !important;
-    margin-bottom: 1mm;
+    margin-bottom: 0.5mm;
+    padding: 0 !important;
   }
 
   .print-ticket-58mm .print-date {
-    font-size: 8pt !important;
+    font-size: 7pt !important;
   }
 
   .print-time {
-    font-size: 12pt !important;
+    font-size: 10pt !important;
     font-weight: 700 !important;
+    padding: 0 !important;
   }
 
   .print-ticket-58mm .print-time {
-    font-size: 10pt !important;
+    font-size: 8pt !important;
   }
 
   /* Queue Section */
   .print-queue-section {
-    padding: 3mm 0;
+    padding: 1mm 0 !important;
   }
 
   .print-queue-type {
-    font-size: 11pt !important;
+    font-size: 9pt !important;
     font-weight: 700 !important;
-    letter-spacing: 1px;
-    margin-bottom: 2mm;
+    letter-spacing: 0.5px;
+    margin-bottom: 1mm;
+    padding: 0 !important;
   }
 
   .print-ticket-58mm .print-queue-type {
-    font-size: 9pt !important;
+    font-size: 8pt !important;
   }
 
   .print-queue-number {
-    font-size: 48pt !important;
+    font-size: 32pt !important;
     font-weight: 900 !important;
     line-height: 1 !important;
-    margin: 4mm 0 !important;
-    letter-spacing: 3px;
+    margin: 2mm 0 !important;
+    padding: 0 !important;
+    letter-spacing: 2px;
   }
 
   .print-ticket-58mm .print-queue-number {
-    font-size: 36pt !important;
-    margin: 3mm 0 !important;
+    font-size: 28pt !important;
+    margin: 1.5mm 0 !important;
   }
 
   .print-remaining {
-    font-size: 10pt !important;
+    font-size: 8pt !important;
     font-weight: 400 !important;
-    margin-top: 2mm;
+    margin-top: 1mm;
+    padding: 0 !important;
   }
 
   .print-ticket-58mm .print-remaining {
-    font-size: 8pt !important;
+    font-size: 7pt !important;
   }
 
   .print-remaining strong {
@@ -324,13 +353,14 @@
 
   /* Footer */
   .print-footer {
-    font-size: 9pt !important;
+    font-size: 7pt !important;
     font-weight: 400 !important;
-    line-height: 1.4 !important;
-    padding-top: 2mm;
+    line-height: 1.2 !important;
+    padding-top: 1mm !important;
+    margin: 0 !important;
   }
 
   .print-ticket-58mm .print-footer {
-    font-size: 7pt !important;
+    font-size: 6pt !important;
   }
 }
