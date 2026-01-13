@@ -30,7 +30,8 @@ import {
 } from '@/lib/queueStore';
 import { getAllVoices } from '@/lib/audioUtils';
 import { toast } from 'sonner';
-import { RotateCcw, Save, Printer, Monitor, Tv, ExternalLink, Volume2 } from 'lucide-react';
+import { RotateCcw, Save, Printer, Monitor, Tv, ExternalLink, Volume2, Bluetooth } from 'lucide-react';
+import PrinterSetup from '@/components/PrinterSetup';
 
 const Konfigurasi = () => {
   const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
@@ -116,26 +117,30 @@ const Konfigurasi = () => {
           transition={{ duration: 0.5, delay: 0.1 }}
         >
           <Tabs defaultValue="display" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="display" className="gap-2">
                 <Monitor size={16} />
-                Kiosk
+                <span className="hidden sm:inline">Kiosk</span>
               </TabsTrigger>
               <TabsTrigger value="tv" className="gap-2">
                 <Tv size={16} />
-                Display TV
+                <span className="hidden sm:inline">Display TV</span>
               </TabsTrigger>
               <TabsTrigger value="voice" className="gap-2">
                 <Volume2 size={16} />
-                Suara
+                <span className="hidden sm:inline">Suara</span>
+              </TabsTrigger>
+              <TabsTrigger value="printer" className="gap-2">
+                <Bluetooth size={16} />
+                <span className="hidden sm:inline">Printer</span>
               </TabsTrigger>
               <TabsTrigger value="print" className="gap-2">
                 <Printer size={16} />
-                Cetak
+                <span className="hidden sm:inline">Cetak</span>
               </TabsTrigger>
               <TabsTrigger value="queue" className="gap-2">
                 <RotateCcw size={16} />
-                Antrian
+                <span className="hidden sm:inline">Antrian</span>
               </TabsTrigger>
             </TabsList>
 
@@ -549,6 +554,10 @@ const Konfigurasi = () => {
                   </Button>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="printer">
+              <PrinterSetup />
             </TabsContent>
 
             <TabsContent value="print">
