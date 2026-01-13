@@ -19,15 +19,75 @@ const digitToIndonesian = (digit: string): string => {
   return digitMap[digit] || digit;
 };
 
-// Convert queue number to spoken Indonesian (A001 → A nol nol satu)
+// Convert two-digit number to Indonesian word (proper pronunciation)
+const twoDigitToIndonesian = (num: number): string => {
+  if (num === 0) return 'nol';
+  if (num < 10) return digitToIndonesian(String(num));
+  
+  if (num === 10) return 'sepuluh';
+  if (num === 11) return 'sebelas';
+  if (num < 20) return digitToIndonesian(String(num - 10)) + ' belas';
+  
+  const tens = Math.floor(num / 10);
+  const ones = num % 10;
+  
+  if (ones === 0) {
+    return digitToIndonesian(String(tens)) + ' puluh';
+  }
+  return digitToIndonesian(String(tens)) + ' puluh ' + digitToIndonesian(String(ones));
+};
+
+// Convert queue number to spoken Indonesian with proper number grouping
+// A001 → A nol nol satu
+// A011 → A nol sebelas
+// A111 → A seratus sebelas
+// A023 → A nol dua puluh tiga
 const formatQueueForSpeech = (queueNumber: string): string => {
   const letter = queueNumber.charAt(0);
   const numbers = queueNumber.slice(1);
   
-  const spokenNumbers = numbers
-    .split('')
-    .map(digitToIndonesian)
-    .join(' ');
+  // Remove leading zeros to get actual number
+  const numValue = parseInt(numbers, 10);
+  
+  // Get first digit (hundreds place)
+  const firstDigit = parseInt(numbers.charAt(0), 10);
+  // Get last two digits
+  const lastTwo = parseInt(numbers.slice(1), 10);
+  
+  let spokenNumbers = '';
+  
+  if (numValue === 0) {
+    // 000 case
+    spokenNumbers = 'nol nol nol';
+  } else if (firstDigit === 0) {
+    // 0XX case - first digit is zero
+    if (lastTwo < 10) {
+      // 00X case - nol nol X
+      spokenNumbers = 'nol nol ' + digitToIndonesian(String(lastTwo));
+    } else {
+      // 0XY case - nol + two digit pronunciation
+      spokenNumbers = 'nol ' + twoDigitToIndonesian(lastTwo);
+    }
+  } else {
+    // XXX case - three digits, use proper Indonesian number
+    if (numValue < 10) {
+      spokenNumbers = 'nol nol ' + digitToIndonesian(String(numValue));
+    } else if (numValue < 100) {
+      spokenNumbers = 'nol ' + twoDigitToIndonesian(numValue);
+    } else if (numValue === 100) {
+      spokenNumbers = 'seratus';
+    } else if (numValue < 200) {
+      spokenNumbers = 'seratus ' + twoDigitToIndonesian(numValue - 100);
+    } else {
+      const hundreds = Math.floor(numValue / 100);
+      const remainder = numValue % 100;
+      if (remainder === 0) {
+        spokenNumbers = digitToIndonesian(String(hundreds)) + ' ratus';
+      } else {
+        spokenNumbers = digitToIndonesian(String(hundreds)) + ' ratus ' + twoDigitToIndonesian(remainder);
+      }
+    }
+  }
   
   return `${letter} ${spokenNumbers}`;
 };
