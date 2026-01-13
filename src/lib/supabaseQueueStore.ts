@@ -165,7 +165,31 @@ export const callNextTeller = async (): Promise<{ number: number; remaining: num
   };
 };
 
-// Reset queue
+// Repeat last call - triggers sound on display by updating last_called_at
+export const repeatLastCall = async (
+  type: 'CS' | 'TELLER',
+  number: number
+): Promise<boolean> => {
+  const state = await fetchQueueState();
+  if (!state) return false;
+  
+  const { error } = await supabase
+    .from('queue_state')
+    .update({
+      last_called_type: type,
+      last_called_number: number,
+      last_called_at: new Date().toISOString(),
+    })
+    .eq('id', state.id);
+  
+  if (error) {
+    console.error('Error repeating call:', error);
+    return false;
+  }
+  
+  return true;
+};
+
 export const resetQueue = async (): Promise<boolean> => {
   const state = await fetchQueueState();
   if (!state) return false;

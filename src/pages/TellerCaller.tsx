@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchQueueState, callNextTeller, formatQueueNumber, subscribeToQueueState, QueueState } from '@/lib/supabaseQueueStore';
+import { fetchQueueState, callNextTeller, repeatLastCall, formatQueueNumber, subscribeToQueueState, QueueState } from '@/lib/supabaseQueueStore';
 import { toast } from '@/hooks/use-toast';
-import { PhoneCall, Users, CheckCircle, Loader2 } from 'lucide-react';
+import { PhoneCall, Users, CheckCircle, Loader2, RotateCcw } from 'lucide-react';
 import logoBank from '@/assets/logo-bankaltimtara.png';
 
 const TellerCaller = () => {
@@ -12,6 +12,7 @@ const TellerCaller = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isCallLoading, setIsCallLoading] = useState(false);
+  const [isRepeatLoading, setIsRepeatLoading] = useState(false);
 
   useEffect(() => {
     // Initial fetch
@@ -47,13 +48,37 @@ const TellerCaller = () => {
     setIsAnimating(true);
     const queueNumber = formatQueueNumber('TELLER', result.number);
 
-    // NO SOUND HERE - Sound only plays on /display
     toast({
       title: "Memanggil Antrian",
       description: `Nomor ${queueNumber} silakan menuju Teller`,
     });
 
     setTimeout(() => setIsAnimating(false), 1000);
+  };
+
+  const handleRepeat = async () => {
+    if (!queueState || queueState.teller_serving === 0) {
+      toast({
+        title: "Tidak ada panggilan",
+        description: "Belum ada antrian yang dipanggil",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsRepeatLoading(true);
+    const success = await repeatLastCall('TELLER', queueState.teller_serving);
+    setIsRepeatLoading(false);
+
+    if (success) {
+      setIsAnimating(true);
+      const queueNumber = formatQueueNumber('TELLER', queueState.teller_serving);
+      toast({
+        title: "Mengulang Panggilan",
+        description: `Nomor ${queueNumber} dipanggil ulang`,
+      });
+      setTimeout(() => setIsAnimating(false), 1000);
+    }
   };
 
   if (isLoading || !queueState) {
@@ -121,24 +146,45 @@ const TellerCaller = () => {
           </Card>
         </div>
 
-        {/* Call Button */}
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <Button
-            onClick={handleCallNext}
-            disabled={waiting === 0 || isCallLoading}
-            className="w-full h-20 text-xl font-bold bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-gray-500 disabled:to-gray-600"
+        {/* Buttons */}
+        <div className="space-y-3">
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            {isCallLoading ? (
-              <Loader2 className="h-8 w-8 mr-3 animate-spin" />
-            ) : (
-              <PhoneCall className="h-8 w-8 mr-3" />
-            )}
-            Panggil Berikutnya
-          </Button>
-        </motion.div>
+            <Button
+              onClick={handleCallNext}
+              disabled={waiting === 0 || isCallLoading}
+              className="w-full h-20 text-xl font-bold bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-gray-500 disabled:to-gray-600"
+            >
+              {isCallLoading ? (
+                <Loader2 className="h-8 w-8 mr-3 animate-spin" />
+              ) : (
+                <PhoneCall className="h-8 w-8 mr-3" />
+              )}
+              Panggil Berikutnya
+            </Button>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Button
+              onClick={handleRepeat}
+              disabled={queueState.teller_serving === 0 || isRepeatLoading}
+              variant="outline"
+              className="w-full h-14 text-lg font-semibold border-white/30 text-white hover:bg-white/10 disabled:opacity-50"
+            >
+              {isRepeatLoading ? (
+                <Loader2 className="h-6 w-6 mr-2 animate-spin" />
+              ) : (
+                <RotateCcw className="h-6 w-6 mr-2" />
+              )}
+              Ulang Panggilan Terakhir
+            </Button>
+          </motion.div>
+        </div>
 
         {waiting === 0 && (
           <p className="text-center text-emerald-300 text-sm">
