@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Download, CheckCircle, Smartphone, Monitor, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
-import logo from "@/assets/logo-bankaltimtara.png";
+const logo = "/icon-512x512.png";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
