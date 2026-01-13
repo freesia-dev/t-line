@@ -417,7 +417,7 @@ const QueueDisplay = () => {
     <div className="h-[100dvh] w-screen bg-white p-2 sm:p-4 flex flex-col overflow-hidden box-border">
       {/* Header */}
       <div 
-        className="flex items-center justify-between bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-2 sm:p-3 shadow-lg shrink-0"
+        className="flex items-center justify-between bg-white rounded-xl p-2 sm:p-3 shadow-lg shrink-0 border border-gray-200"
         style={{ marginBottom: 'clamp(0.5rem, 1.5vmin, 1rem)' }}
       >
         <div className="flex items-center gap-2 sm:gap-4">
@@ -429,13 +429,13 @@ const QueueDisplay = () => {
           />
           <div>
             <h1 
-              className="font-bold text-white"
+              className="font-bold text-blue-700"
               style={{ fontSize: 'clamp(0.75rem, 2vmin, 1.5rem)' }}
             >
               {printConfig.bankName}
             </h1>
             <p 
-              className="text-blue-100"
+              className="text-blue-500"
               style={{ fontSize: 'clamp(0.5rem, 1.5vmin, 1rem)' }}
             >
               {printConfig.branchName}
@@ -445,13 +445,13 @@ const QueueDisplay = () => {
         <div className="text-right flex items-center gap-2 sm:gap-4">
           <div>
             <p 
-              className="font-bold text-amber-300"
+              className="font-bold text-blue-600"
               style={{ fontSize: 'clamp(1.25rem, 5vmin, 3rem)' }}
             >
               {time}
             </p>
             <p 
-              className="text-white/80"
+              className="text-blue-400"
               style={{ fontSize: 'clamp(0.5rem, 1.2vmin, 0.875rem)' }}
             >
               {currentDate}
@@ -461,7 +461,7 @@ const QueueDisplay = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="text-white/80 hover:text-amber-300 hover:bg-white/10 h-6 w-6 sm:h-8 sm:w-8"
+              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 h-6 w-6 sm:h-8 sm:w-8"
               onClick={() => setSoundEnabled(!soundEnabled)}
             >
               {soundEnabled ? <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" /> : <VolumeX className="h-4 w-4 sm:h-5 sm:w-5" />}
@@ -469,7 +469,7 @@ const QueueDisplay = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="text-white/80 hover:text-amber-300 hover:bg-white/10 h-6 w-6 sm:h-8 sm:w-8"
+              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 h-6 w-6 sm:h-8 sm:w-8"
               onClick={toggleFullscreen}
             >
               {isFullscreen ? <Minimize className="h-4 w-4 sm:h-5 sm:w-5" /> : <Maximize className="h-4 w-4 sm:h-5 sm:w-5" />}
