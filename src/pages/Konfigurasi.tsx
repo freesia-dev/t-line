@@ -26,8 +26,8 @@ import {
   DisplayConfig,
   TVDisplayConfig,
   VoiceConfig,
-  ELEVENLABS_VOICES,
 } from '@/lib/queueStore';
+import { getAllVoices } from '@/lib/audioUtils';
 import { toast } from 'sonner';
 import { RotateCcw, Save, Printer, Monitor, Tv, ExternalLink, Volume2 } from 'lucide-react';
 
@@ -37,9 +37,23 @@ const Konfigurasi = () => {
   const [tvConfig, setTVConfig] = useState<TVDisplayConfig>(getTVDisplayConfig());
   const [voiceConfig, setVoiceConfig] = useState<VoiceConfig>(getVoiceConfig());
   const [queueState, setQueueState] = useState(getQueueState());
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   useEffect(() => {
     setQueueState(getQueueState());
+    
+    // Load available voices
+    const loadVoices = () => {
+      const voices = getAllVoices();
+      setAvailableVoices(voices);
+    };
+    
+    loadVoices();
+    
+    // Voices may load asynchronously
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
   }, []);
 
   const handleSavePrintConfig = () => {
@@ -360,24 +374,38 @@ const Konfigurasi = () => {
                 <CardHeader>
                   <CardTitle>Pengaturan Suara</CardTitle>
                   <CardDescription>
-                    Kustomisasi suara panggilan antrian menggunakan ElevenLabs TTS
+                    Kustomisasi suara panggilan antrian dengan pelafalan Indonesia yang benar (A001 → A nol nol satu)
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="useBrowserTTS">Gunakan Browser TTS</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Gunakan TTS bawaan browser (gratis, kualitas standar)
+                  <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+                    <div className="space-y-2">
+                      <Label>Pilih Suara</Label>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Pilih suara dari browser Anda. Suara Indonesia direkomendasikan.
                       </p>
+                      <Select
+                        value={voiceConfig.voiceName || 'default'}
+                        onValueChange={(value) => {
+                          setVoiceConfig({
+                            ...voiceConfig,
+                            voiceName: value === 'default' ? '' : value,
+                          });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih suara..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Otomatis (Indonesia)</SelectItem>
+                          {availableVoices.map((voice) => (
+                            <SelectItem key={voice.name} value={voice.name}>
+                              {voice.name} ({voice.lang})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Switch
-                      id="useBrowserTTS"
-                      checked={voiceConfig.useBrowserTTS}
-                      onCheckedChange={(checked) =>
-                        setVoiceConfig({ ...voiceConfig, useBrowserTTS: checked })
-                      }
-                    />
                   </div>
 
                   <div className="space-y-2">
@@ -399,38 +427,13 @@ const Konfigurasi = () => {
                     </Select>
                   </div>
 
-                  {!voiceConfig.useBrowserTTS && (
-                    <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
-                      <div className="space-y-2">
-                        <Label>Pilih Suara ElevenLabs</Label>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          Suara AI berkualitas tinggi untuk panggilan antrian
-                        </p>
-                        <Select
-                          value={voiceConfig.voiceId}
-                          onValueChange={(value) => {
-                            const voice = ELEVENLABS_VOICES.find(v => v.id === value);
-                            setVoiceConfig({
-                              ...voiceConfig,
-                              voiceId: value,
-                              voiceName: voice?.name || 'Unknown',
-                            });
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih suara..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ELEVENLABS_VOICES.map((voice) => (
-                              <SelectItem key={voice.id} value={voice.id}>
-                                {voice.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  )}
+                  <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                    <p className="text-sm text-foreground">
+                      <strong>Contoh pelafalan:</strong><br />
+                      A001 → "A nol nol satu"<br />
+                      B123 → "B satu dua tiga"
+                    </p>
+                  </div>
 
                   <div className="pt-2">
                     <Button
