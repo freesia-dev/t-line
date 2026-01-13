@@ -1,6 +1,6 @@
 // Audio utilities for queue system with ElevenLabs TTS
 
-// Create a simple ding sound using Web Audio API
+import { getVoiceConfig } from './queueStore';
 export const playDingSound = (): Promise<void> => {
   return new Promise((resolve) => {
     try {
@@ -52,7 +52,7 @@ export const playDingSound = (): Promise<void> => {
 };
 
 // ElevenLabs TTS announcement
-const playElevenLabsTTS = async (text: string): Promise<boolean> => {
+const playElevenLabsTTS = async (text: string, voiceId: string): Promise<boolean> => {
   try {
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
@@ -63,7 +63,7 @@ const playElevenLabsTTS = async (text: string): Promise<boolean> => {
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, voiceId }),
       }
     );
 
@@ -117,6 +117,7 @@ const playBrowserTTS = (text: string): Promise<void> => {
 
 // Main announcement function with ElevenLabs TTS and fallback
 export const announceQueue = async (queueNumber: string, destination: string) => {
+  const voiceConfig = getVoiceConfig();
   const announcementText = `Nomor antrian ${queueNumber}, silakan menuju ${destination}`;
   
   // Play ding first
@@ -125,8 +126,14 @@ export const announceQueue = async (queueNumber: string, destination: string) =>
   // Small delay after ding
   await new Promise(resolve => setTimeout(resolve, 300));
   
+  // If browser TTS is preferred, use it directly
+  if (voiceConfig.useBrowserTTS) {
+    await playBrowserTTS(announcementText);
+    return;
+  }
+  
   // Try ElevenLabs TTS first, fallback to browser TTS
-  const elevenLabsSuccess = await playElevenLabsTTS(announcementText);
+  const elevenLabsSuccess = await playElevenLabsTTS(announcementText, voiceConfig.voiceId);
   
   if (!elevenLabsSuccess) {
     console.log('Falling back to browser TTS');
