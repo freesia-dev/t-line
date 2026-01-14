@@ -1,18 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import QueueButton from '@/components/QueueButton';
+import PrintTicket from '@/components/PrintTicket';
 import Navigation from '@/components/Navigation';
 import logoBank from '@/assets/logo-bankaltimtara.png';
 import { fetchQueueState, takeCSQueue, takeTellerQueue, subscribeToQueueState, QueueState } from '@/lib/supabaseQueueStore';
 import { getPrintConfig, getDisplayConfig, PrintConfig, DisplayConfig } from '@/lib/queueStore';
-import { printTicketDirect, getPrinterConfig } from '@/lib/thermalPrinter';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+
+interface PrintData {
+  type: 'CS' | 'TELLER';
+  number: number;
+  remaining: number;
+}
 
 const Dashboard = () => {
   const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
   const [displayConfig, setDisplayConfig] = useState<DisplayConfig>(getDisplayConfig());
+  const [printData, setPrintData] = useState<PrintData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTakingQueue, setIsTakingQueue] = useState(false);
 
@@ -45,44 +52,40 @@ const Dashboard = () => {
   const handleTakeCS = useCallback(async () => {
     setIsTakingQueue(true);
     const result = await takeCSQueue();
+    setIsTakingQueue(false);
     
     if (result) {
+      setPrintData({
+        type: 'CS',
+        number: result.number,
+        remaining: result.remaining,
+      });
       toast.success(`Nomor antrian CS: B${String(result.number).padStart(3, '0')}`);
-      
-      // Print langsung tanpa popup
-      try {
-        const printerConfig = getPrinterConfig();
-        await printTicketDirect('CS', result.number, result.remaining, printConfig, printerConfig);
-      } catch (error) {
-        console.error('Print error:', error);
-        toast.error('Gagal mencetak tiket');
-      }
     } else {
       toast.error('Gagal mengambil nomor antrian');
     }
-    setIsTakingQueue(false);
-  }, [printConfig]);
+  }, []);
 
   const handleTakeTeller = useCallback(async () => {
     setIsTakingQueue(true);
     const result = await takeTellerQueue();
+    setIsTakingQueue(false);
     
     if (result) {
+      setPrintData({
+        type: 'TELLER',
+        number: result.number,
+        remaining: result.remaining,
+      });
       toast.success(`Nomor antrian Teller: A${String(result.number).padStart(3, '0')}`);
-      
-      // Print langsung tanpa popup
-      try {
-        const printerConfig = getPrinterConfig();
-        await printTicketDirect('TELLER', result.number, result.remaining, printConfig, printerConfig);
-      } catch (error) {
-        console.error('Print error:', error);
-        toast.error('Gagal mencetak tiket');
-      }
     } else {
       toast.error('Gagal mengambil nomor antrian');
     }
-    setIsTakingQueue(false);
-  }, [printConfig]);
+  }, []);
+
+  const handlePrinted = useCallback(() => {
+    setPrintData(null);
+  }, []);
 
   const currentDate = new Date().toLocaleDateString('id-ID', {
     weekday: 'long',
@@ -163,6 +166,19 @@ const Dashboard = () => {
 
         <Navigation />
       </div>
+
+      {/* Print ticket (hidden, only shown when printing) */}
+      <AnimatePresence>
+        {printData && (
+          <PrintTicket
+            type={printData.type}
+            number={printData.number}
+            remaining={printData.remaining}
+            config={printConfig}
+            onPrinted={handlePrinted}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 };
