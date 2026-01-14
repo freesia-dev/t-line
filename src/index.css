@@ -141,26 +141,33 @@
   visibility: hidden;
 }
 
-/* Print styles for thermal printer */
+/* Print styles for thermal printer - Fixed height to prevent long paper feed */
 @page {
-  size: 58mm auto;
-  margin: 0;
-  padding: 0;
+  size: 58mm 70mm;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 @media print {
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    margin: 0 !important;
-    padding: 0 !important;
     box-sizing: border-box !important;
   }
 
-  html, body {
+  html {
     width: 58mm !important;
-    min-height: auto !important;
-    height: auto !important;
+    height: 70mm !important;
+    max-height: 70mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body {
+    width: 58mm !important;
+    height: 70mm !important;
+    max-height: 70mm !important;
     margin: 0 !important;
     padding: 0 !important;
     font-family: 'Arial', 'Helvetica', sans-serif !important;
@@ -168,11 +175,14 @@
     line-height: 1.2 !important;
     background: white !important;
     color: black !important;
+    overflow: hidden !important;
   }
 
   /* Hide React root and other elements */
   #root {
     display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
   }
 
   /* Show print content */
@@ -184,12 +194,16 @@
   #print-ticket-container {
     display: block !important;
     visibility: visible !important;
-    position: absolute !important;
+    position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     width: 58mm !important;
+    height: 70mm !important;
+    max-height: 70mm !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: hidden !important;
+    page-break-after: always !important;
   }
 
   /* 80mm paper size */
@@ -200,8 +214,11 @@
   .print-ticket-80mm {
     width: 76mm !important;
     max-width: 76mm !important;
-    padding: 2mm !important;
+    height: 68mm !important;
+    max-height: 68mm !important;
+    padding: 1mm 2mm !important;
     margin: 0 !important;
+    overflow: hidden !important;
   }
 
   /* 58mm paper size */
@@ -212,8 +229,11 @@
   .print-ticket-58mm {
     width: 54mm !important;
     max-width: 54mm !important;
+    height: 68mm !important;
+    max-height: 68mm !important;
     padding: 1mm 2mm !important;
     margin: 0 !important;
+    overflow: hidden !important;
   }
 
   .print-ticket {
@@ -223,7 +243,11 @@
     text-align: center !important;
     background: white !important;
     color: black !important;
+    height: 68mm !important;
+    max-height: 68mm !important;
+    overflow: hidden !important;
     page-break-inside: avoid !important;
+    page-break-after: always !important;
   }
 
   /* Header Section - Logo */
