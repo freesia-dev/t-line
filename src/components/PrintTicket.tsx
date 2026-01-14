@@ -80,11 +80,12 @@ const PrintTicketContent = ({ type, number, config, remaining }: Omit<PrintTicke
   );
 };
 
-const buildStandalonePrintHtml = (ticketOuterHtml: string, config: PrintConfig) => {
+const buildStandalonePrintHtml = (ticketOuterHtml: string, config: PrintConfig, baseHref: string) => {
   const paperWidth = config.paperSize === '58mm' ? '58mm' : '80mm';
   const ticketWidth = config.paperSize === '58mm' ? '54mm' : '76mm';
 
   // Minimal, self-contained print page to avoid blank/partial output on some thermal drivers.
+  // NOTE: include <base> so asset URLs (e.g. /assets/...) resolve inside about:blank iframe.
   const css = `
     @page { size: ${paperWidth} auto; margin: 0; }
     html, body { margin: 0; padding: 0; background: #fff; color: #000; }
@@ -118,32 +119,12 @@ const buildStandalonePrintHtml = (ticketOuterHtml: string, config: PrintConfig) 
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <base href="${baseHref}" />
     <title>Print Ticket</title>
     <style>${css}</style>
   </head>
   <body>
     ${ticketOuterHtml}
-    <script>
-      (function(){
-        function waitImages(){
-          var imgs = Array.prototype.slice.call(document.images || []);
-          if (!imgs.length) return Promise.resolve();
-          return Promise.all(imgs.map(function(img){
-            if (img.complete) return Promise.resolve();
-            return new Promise(function(res){
-              img.addEventListener('load', res, { once: true });
-              img.addEventListener('error', res, { once: true });
-            });
-          }));
-        }
-        waitImages().then(function(){
-          setTimeout(function(){
-            window.focus();
-            window.print();
-          }, 250);
-        });
-      })();
-    </script>
   </body>
 </html>`;
 };
@@ -154,6 +135,21 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
   useEffect(() => {
     if (hasTriggeredPrint.current) return;
     hasTriggeredPrint.current = true;
+
+    const waitImages = (doc: Document) => {
+      const imgs = Array.from(doc.images || []);
+      if (!imgs.length) return Promise.resolve();
+      return Promise.all(
+        imgs.map(
+          (img) =>
+            new Promise<void>((res) => {
+              if (img.complete) return res();
+              img.addEventListener('load', () => res(), { once: true });
+              img.addEventListener('error', () => res(), { once: true });
+            })
+        )
+      );
+    };
 
     const t = window.setTimeout(() => {
       const ticketEl = document.getElementById('print-ticket-container');
@@ -176,7 +172,8 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
 
       document.body.appendChild(iframe);
 
-      const html = buildStandalonePrintHtml(ticketEl.outerHTML, config);
+      const baseHref = `${window.location.origin}/`;
+      const html = buildStandalonePrintHtml(ticketEl.outerHTML, config, baseHref);
       const doc = iframe.contentDocument;
       if (!doc) {
         window.print();
@@ -194,8 +191,39 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
         onPrinted?.();
       };
 
-      const fallback = window.setTimeout(cleanup, 1500);
-      iframe.contentWindow?.addEventListener(
+      const fallback = window.setTimeout(() => {
+        // If iframe print is blocked, fallback to normal window.print()
+        try {
+          window.print();
+        } catch {
+          // ignore
+        }
+        cleanup();
+      }, 2000);
+
+      const win = iframe.contentWindow;
+      if (!win) {
+        window.clearTimeout(fallback);
+        window.print();
+        cleanup();
+        return;
+      }
+
+      // Wait assets (logo) then trigger print from parent (more reliable than running print() in iframe script)
+      waitImages(doc)
+        .catch(() => undefined)
+        .then(() => {
+          window.setTimeout(() => {
+            try {
+              win.focus();
+              win.print();
+            } catch {
+              // ignore
+            }
+          }, 150);
+        });
+
+      win.addEventListener(
         'afterprint',
         () => {
           window.clearTimeout(fallback);
@@ -203,13 +231,13 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
         },
         { once: true }
       );
-    }, 250);
+    }, 50);
 
     return () => window.clearTimeout(t);
   }, [config, onPrinted]);
 
   return createPortal(
-    <PrintTicketContent type={type} number={number} remaining={remaining} config={config} />,
+    <PrintTicketContent type={type} number={number} remaining={remaining} config={config} />, 
     document.body
   );
 };
