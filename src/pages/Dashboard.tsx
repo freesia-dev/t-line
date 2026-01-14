@@ -104,17 +104,17 @@ const Dashboard = () => {
 
   return (
     <>
-      <div className="no-print relative min-h-screen overflow-hidden bg-gradient-to-br from-background via-background to-muted">
+      <div className="no-print relative h-screen overflow-hidden bg-gradient-to-br from-background via-background to-muted">
         {/* Background decorations */}
-        <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-primary/5 blur-3xl" />
           <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-secondary/5 blur-3xl" />
         </div>
 
-        <div className="relative flex min-h-screen flex-col items-center justify-center px-6 pb-24 pt-8">
+        <div className="relative flex h-full flex-col items-center justify-center px-4 pb-20 pt-4">
           {/* Header */}
           <motion.div
-            className="mb-12 text-center"
+            className="mb-6 text-center flex-shrink-0"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -122,21 +122,21 @@ const Dashboard = () => {
             <img 
               src={logoBank} 
               alt="Logo Bankaltimtara" 
-              className="mx-auto mb-4 h-20 w-auto"
+              className="mx-auto mb-2 h-14 w-auto sm:h-16 md:h-20"
             />
-            <h1 className="text-gradient-primary mb-2 text-4xl font-extrabold tracking-tight md:text-5xl">
+            <h1 className="text-gradient-primary mb-1 text-2xl font-extrabold tracking-tight sm:text-3xl md:text-4xl lg:text-5xl">
               Bankaltimtara
             </h1>
-            <p className="text-lg font-medium text-muted-foreground">
+            <p className="text-sm font-medium text-muted-foreground sm:text-base md:text-lg">
               KCP Kelas 2 Telihan
             </p>
-            <p className="mt-4 text-sm text-muted-foreground">
+            <p className="mt-2 text-xs text-muted-foreground sm:text-sm">
               {currentDate}
             </p>
           </motion.div>
 
           {/* Queue Buttons */}
-          <div className="flex flex-col gap-8 md:flex-row md:gap-12">
+          <div className="flex flex-col gap-4 sm:gap-6 md:flex-row md:gap-8 lg:gap-12 flex-shrink-0">
             <QueueButton
               type="CS"
               currentQueue={queueState?.cs_queue || 0}
@@ -155,7 +155,7 @@ const Dashboard = () => {
 
           {/* Instructions */}
           <motion.p
-            className="mt-12 text-center text-muted-foreground"
+            className="mt-4 text-center text-xs text-muted-foreground sm:text-sm md:mt-6 flex-shrink-0"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}

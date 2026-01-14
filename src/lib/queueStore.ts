@@ -22,6 +22,7 @@ export interface DisplayConfig {
   showAnimation: boolean;
   buttonSize: 'medium' | 'large' | 'xlarge';
   showQueueCount: boolean;
+  directPrint: boolean;
 }
 
 export interface TVDisplayConfig {
@@ -71,6 +72,7 @@ const DEFAULT_DISPLAY_CONFIG: DisplayConfig = {
   showAnimation: true,
   buttonSize: 'large',
   showQueueCount: true,
+  directPrint: false,
 };
 
 const DEFAULT_TV_DISPLAY_CONFIG: TVDisplayConfig = {
