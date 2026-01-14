@@ -45,10 +45,18 @@ export interface PronunciationMapping {
   spoken: string;
 }
 
+export interface CustomAudioPhrase {
+  phrase: string; // e.g., 'nomor_antrian', 'customer_service', 'teller', 'silakan_menuju'
+  label: string; // Display label
+  audioUrl: string;
+}
+
 export interface VoiceConfig {
   voiceName: string;
   speed: 'slow' | 'normal' | 'fast';
   pronunciations: PronunciationMapping[];
+  useCustomAudio: boolean;
+  customAudioPhrases: CustomAudioPhrase[];
 }
 
 const DEFAULT_VOICE_CONFIG: VoiceConfig = {
@@ -57,6 +65,13 @@ const DEFAULT_VOICE_CONFIG: VoiceConfig = {
   pronunciations: [
     { original: 'Customer Service', spoken: 'Kastamer Servis' },
     { original: 'Teller', spoken: 'Teler' },
+  ],
+  useCustomAudio: false,
+  customAudioPhrases: [
+    { phrase: 'nomor_antrian', label: 'Nomor Antrian', audioUrl: '' },
+    { phrase: 'customer_service', label: 'Customer Service', audioUrl: '' },
+    { phrase: 'teller', label: 'Teller', audioUrl: '' },
+    { phrase: 'silakan_menuju', label: 'Silakan Menuju ke', audioUrl: '' },
   ],
 };
 
