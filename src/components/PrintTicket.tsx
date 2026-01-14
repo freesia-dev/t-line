@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { PrintConfig, formatQueueNumber } from '@/lib/queueStore';
 import { 
@@ -8,6 +8,9 @@ import {
   printViaBluetooth, 
   isPrinterConnected 
 } from '@/lib/thermalPrinter';
+import { Button } from '@/components/ui/button';
+import { Printer, Check, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import logoBank from '@/assets/logo-bankaltimtara.png';
 
 interface PrintTicketProps {
@@ -136,55 +139,125 @@ const buildStandalonePrintHtml = (ticketOuterHtml: string, config: PrintConfig, 
 </html>`;
 };
 
+// Print confirmation dialog overlay
+interface PrintDialogProps {
+  type: 'CS' | 'TELLER';
+  number: number;
+  remaining: number;
+  config: PrintConfig;
+  onPrint: () => void;
+  onClose: () => void;
+}
+
+const PrintDialog = ({ type, number, remaining, config, onPrint, onClose }: PrintDialogProps) => {
+  const formattedNumber = formatQueueNumber(type, number);
+
+  return createPortal(
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-card rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden"
+      >
+        {/* Header */}
+        <div className="bg-gradient-to-r from-primary to-primary/80 p-6 text-center text-primary-foreground">
+          <p className="text-sm opacity-90 mb-1">Nomor Antrian</p>
+          <p className="text-lg font-medium mb-2">{type === 'CS' ? 'Customer Service' : 'Teller'}</p>
+          <p className="text-5xl font-black tracking-wider">{formattedNumber}</p>
+        </div>
+
+        {/* Info */}
+        <div className="p-6 text-center">
+          <p className="text-muted-foreground mb-1">Sisa antrian di depan Anda:</p>
+          <p className="text-3xl font-bold text-foreground">{remaining} <span className="text-lg font-normal">orang</span></p>
+        </div>
+
+        {/* Actions */}
+        <div className="p-4 bg-muted/30 flex gap-3">
+          <Button
+            variant="outline"
+            className="flex-1 h-14"
+            onClick={onClose}
+          >
+            <X className="mr-2 h-5 w-5" />
+            Tutup
+          </Button>
+          <Button
+            className="flex-1 h-14 text-lg font-semibold"
+            onClick={onPrint}
+          >
+            <Printer className="mr-2 h-5 w-5" />
+            CETAK
+          </Button>
+        </div>
+      </motion.div>
+    </motion.div>,
+    document.body
+  );
+};
+
 const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicketProps) => {
-  const hasTriggeredPrint = useRef(false);
+  const [showDialog, setShowDialog] = useState(true);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const hasTriggeredBrowserPrint = useRef(false);
+  const printerConfig = getPrinterConfig();
 
-  useEffect(() => {
-    if (hasTriggeredPrint.current) return;
-    hasTriggeredPrint.current = true;
+  // Determine if we should use ESC/POS (1-tap button) or browser print (auto)
+  const isEscPosMode = 
+    (printerConfig.platform === 'desktop' && printerConfig.useDesktopEscPos) ||
+    printerConfig.platform === 'android';
 
-    const printerConfig = getPrinterConfig();
+  // Handle print action (called from button tap)
+  const handlePrint = useCallback(async () => {
+    setIsPrinting(true);
     
-    // Check if we should use ESC/POS (RawBT or Bluetooth) instead of browser print
-    const shouldUseEscPos = () => {
-      // Desktop with ESC/POS mode enabled
-      if (printerConfig.platform === 'desktop' && printerConfig.useDesktopEscPos) {
-        return true;
-      }
-      // Android always uses ESC/POS
-      if (printerConfig.platform === 'android') {
-        return true;
-      }
-      return false;
-    };
-
-    // ESC/POS printing (RawBT or Bluetooth)
-    if (shouldUseEscPos()) {
+    try {
       const ticketData = generateTicketData(type, number, remaining, config);
       
-      // Android: check method preference
       if (printerConfig.platform === 'android') {
         if (printerConfig.method === 'webBluetooth' && isPrinterConnected()) {
-          // Use Bluetooth
-          printViaBluetooth(ticketData)
-            .then(() => onPrinted?.())
-            .catch((err) => {
-              console.error('Bluetooth print failed, falling back to RawBT:', err);
-              printViaRawBT(ticketData);
-              onPrinted?.();
-            });
+          try {
+            await printViaBluetooth(ticketData);
+          } catch (err) {
+            console.error('Bluetooth print failed, falling back to RawBT:', err);
+            printViaRawBT(ticketData);
+          }
         } else {
-          // Use RawBT
           printViaRawBT(ticketData);
-          onPrinted?.();
         }
-      } else {
-        // Desktop ESC/POS mode - use RawBT Desktop bridge
+      } else if (printerConfig.useDesktopEscPos) {
         printViaRawBT(ticketData);
-        onPrinted?.();
       }
-      return;
+      
+      // Close dialog after triggering print
+      setTimeout(() => {
+        setShowDialog(false);
+        onPrinted?.();
+      }, 300);
+    } catch (err) {
+      console.error('Print error:', err);
+      setIsPrinting(false);
     }
+  }, [type, number, remaining, config, printerConfig, onPrinted]);
+
+  // Handle close without printing
+  const handleClose = useCallback(() => {
+    setShowDialog(false);
+    onPrinted?.();
+  }, [onPrinted]);
+
+  // For browser print mode (desktop without ESC/POS), use auto-print
+  useEffect(() => {
+    if (isEscPosMode) return; // ESC/POS uses button tap
+    if (hasTriggeredBrowserPrint.current) return;
+    hasTriggeredBrowserPrint.current = true;
 
     // Browser print fallback for desktop without ESC/POS
     const waitImages = (doc: Document) => {
@@ -210,7 +283,7 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
         return;
       }
 
-      // Print via hidden iframe with standalone HTML (more reliable on thermal printer drivers)
+      // Print via hidden iframe with standalone HTML
       const iframe = document.createElement('iframe');
       iframe.setAttribute('aria-hidden', 'true');
       iframe.style.position = 'fixed';
@@ -243,7 +316,6 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
       };
 
       const fallback = window.setTimeout(() => {
-        // If iframe print is blocked, fallback to normal window.print()
         try {
           window.print();
         } catch {
@@ -260,7 +332,6 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
         return;
       }
 
-      // Wait assets (logo) then trigger print from parent (more reliable than running print() in iframe script)
       waitImages(doc)
         .catch(() => undefined)
         .then(() => {
@@ -285,18 +356,27 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
     }, 50);
 
     return () => window.clearTimeout(t);
-  }, [type, number, remaining, config, onPrinted]);
+  }, [config, onPrinted, isEscPosMode]);
 
-  // For ESC/POS modes, we don't need the visual ticket
-  const printerConfig = getPrinterConfig();
-  const isEscPosMode = 
-    (printerConfig.platform === 'desktop' && printerConfig.useDesktopEscPos) ||
-    printerConfig.platform === 'android';
-
+  // ESC/POS mode: show print dialog with 1-tap button
   if (isEscPosMode) {
-    return null; // No visual rendering needed for ESC/POS
+    return (
+      <AnimatePresence>
+        {showDialog && (
+          <PrintDialog
+            type={type}
+            number={number}
+            remaining={remaining}
+            config={config}
+            onPrint={handlePrint}
+            onClose={handleClose}
+          />
+        )}
+      </AnimatePresence>
+    );
   }
 
+  // Browser print mode: render hidden ticket for print
   return createPortal(
     <PrintTicketContent type={type} number={number} remaining={remaining} config={config} />, 
     document.body
