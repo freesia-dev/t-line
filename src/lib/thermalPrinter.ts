@@ -1,14 +1,14 @@
 // Thermal Printer Integration
-// Supports: Web Bluetooth (BLE), RawBT App Fallback
+// Supports: Web Bluetooth (BLE), RawBT App Fallback, Desktop ESC/POS Raw
 
 /// <reference types="web-bluetooth" />
 
 import { PrintConfig, formatQueueNumber } from './queueStore';
 
 // ESC/POS Commands
-const ESC = 0x1B;
-const GS = 0x1D;
-const LF = 0x0A;
+const ESC = 0x1b;
+const GS = 0x1d;
+const LF = 0x0a;
 
 const ESCPOS = {
   INIT: [ESC, 0x40], // Initialize printer
@@ -19,8 +19,8 @@ const ESCPOS = {
   DOUBLE_HEIGHT: [GS, 0x21, 0x11], // Double width & height
   NORMAL_SIZE: [GS, 0x21, 0x00],
   TRIPLE_SIZE: [GS, 0x21, 0x22], // Triple width & height
-  UNDERLINE_ON: [ESC, 0x2D, 0x01],
-  UNDERLINE_OFF: [ESC, 0x2D, 0x00],
+  UNDERLINE_ON: [ESC, 0x2d, 0x01],
+  UNDERLINE_OFF: [ESC, 0x2d, 0x00],
   CUT_PAPER: [GS, 0x56, 0x00], // Full cut
   CUT_PAPER_PARTIAL: [GS, 0x56, 0x01], // Partial cut
   FEED_LINES: (n: number) => [ESC, 0x64, n], // Feed n lines
@@ -35,10 +35,12 @@ export interface PrinterDevice {
 
 export interface PrinterConfig {
   method: 'webBluetooth' | 'rawbt' | 'auto';
-  platform: 'desktop' | 'android'; // Mode kiosk: desktop (browser PC) atau android
+  platform: 'desktop' | 'android';
   deviceId?: string;
   deviceName?: string;
   paperSize: '58mm' | '80mm';
+  /** Desktop mode: use raw ESC/POS via RawBT Desktop bridge instead of browser print */
+  useDesktopEscPos?: boolean;
 }
 
 // Bluetooth printer state
@@ -47,7 +49,6 @@ let writerCharacteristic: BluetoothRemoteGATTCharacteristic | null = null;
 
 // Standard Bluetooth Printer Service UUIDs
 const PRINTER_SERVICE_UUID = '000018f0-0000-1000-8000-00805f9b34fb';
-const PRINTER_CHAR_UUID = '00002af1-0000-1000-8000-00805f9b34fb';
 
 // Alternative UUIDs for different printer brands
 const ALT_SERVICE_UUIDS = [
@@ -89,11 +90,13 @@ export const scanForPrinters = async (): Promise<PrinterDevice[]> => {
     });
 
     if (device) {
-      return [{
-        id: device.id,
-        name: device.name || 'Unknown Printer',
-        type: 'bluetooth',
-      }];
+      return [
+        {
+          id: device.id,
+          name: device.name || 'Unknown Printer',
+          type: 'bluetooth',
+        },
+      ];
     }
     return [];
   } catch (error) {
@@ -136,7 +139,7 @@ export const connectToPrinter = async (deviceId?: string): Promise<boolean> => {
     }
 
     const server = await device.gatt.connect();
-    
+
     // Try different service UUIDs
     let service: BluetoothRemoteGATTService | null = null;
     for (const uuid of ALT_SERVICE_UUIDS) {
@@ -212,7 +215,7 @@ export const generateTicketData = (
 ): Uint8Array => {
   const commands: number[] = [];
   const encoder = new TextEncoder();
-  
+
   const formattedNumber = formatQueueNumber(type, number);
   const now = new Date();
   const visitDate = now.toLocaleDateString('id-ID', {
@@ -237,7 +240,7 @@ export const generateTicketData = (
   // Bank name
   commands.push(...ESCPOS.BOLD_ON);
   const bankNameLines = wrapText(config.bankName, maxChars);
-  bankNameLines.forEach(line => {
+  bankNameLines.forEach((line) => {
     commands.push(...encoder.encode(line), LF);
   });
   commands.push(...ESCPOS.BOLD_OFF);
@@ -280,13 +283,12 @@ export const generateTicketData = (
 
   // Footer
   const footerLines = wrapText(config.footerMessage, maxChars);
-  footerLines.forEach(line => {
+  footerLines.forEach((line) => {
     commands.push(...encoder.encode(line), LF);
   });
 
   // Feed minimal untuk sobek manual.
-  // Banyak printer portable TIDAK punya cutter; perintah CUT bisa memicu feed panjang.
-  commands.push(...ESCPOS.FEED_LINES(1));
+  commands.push(...ESCPOS.FEED_LINES(2));
 
   return new Uint8Array(commands);
 };
@@ -297,7 +299,7 @@ const wrapText = (text: string, maxChars: number): string[] => {
   const lines: string[] = [];
   let currentLine = '';
 
-  words.forEach(word => {
+  words.forEach((word) => {
     if ((currentLine + ' ' + word).trim().length <= maxChars) {
       currentLine = (currentLine + ' ' + word).trim();
     } else {
@@ -317,38 +319,39 @@ export const printViaBluetooth = async (data: Uint8Array): Promise<boolean> => {
   }
 
   try {
-    // POS58 and cheap thermal printers need small chunks (20-100 bytes)
-    // Using 20 bytes for maximum compatibility
     const chunkSize = 20;
     const totalChunks = Math.ceil(data.length / chunkSize);
-    
+
     console.log(`Printing ${data.length} bytes in ${totalChunks} chunks...`);
-    
+
     for (let i = 0; i < data.length; i += chunkSize) {
       const chunk = data.slice(i, i + chunkSize);
-      
-      // Use writeValueWithoutResponse for faster printing if available
+
       try {
         await writerCharacteristic.writeValueWithoutResponse(chunk);
       } catch {
         await writerCharacteristic.writeValue(chunk);
       }
-      
-      // Longer delay for stability (100ms for POS58)
-      await new Promise(resolve => setTimeout(resolve, 100));
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
-    
+
     console.log('Print completed successfully');
     return true;
   } catch (error) {
     console.error('Error printing via Bluetooth:', error);
-    // Try to reset connection on error
     if ((error as Error).message?.includes('GATT')) {
       connectedDevice = null;
       writerCharacteristic = null;
     }
     throw error;
   }
+};
+
+// Print via RawBT (Android or Desktop bridge)
+export const printViaRawBT = (data: Uint8Array): void => {
+  const base64 = bytesToBase64(data);
+  window.location.href = `rawbt:base64,${base64}`;
 };
 
 // Print ticket (auto-select method based on platform)
@@ -361,15 +364,20 @@ export const printTicket = async (
 ): Promise<boolean> => {
   const ticketData = generateTicketData(type, number, remaining, config);
 
-  // Mode DESKTOP: selalu gunakan window.print() (CSS print styles)
+  // Mode DESKTOP
   if (printerConfig.platform === 'desktop') {
+    // Desktop ESC/POS Raw mode - send via RawBT Desktop bridge
+    if (printerConfig.useDesktopEscPos) {
+      printViaRawBT(ticketData);
+      return true;
+    }
+    // Standard browser print
     window.print();
     return true;
   }
 
   // Mode ANDROID: prioritas Web Bluetooth > RawBT
   if (printerConfig.platform === 'android') {
-    // Coba Web Bluetooth jika terhubung atau dipilih
     if (
       printerConfig.method === 'webBluetooth' ||
       (printerConfig.method === 'auto' && isPrinterConnected())
@@ -380,21 +388,19 @@ export const printTicket = async (
       return await printViaBluetooth(ticketData);
     }
 
-    // RawBT - kirim RAW ESC/POS bytes langsung ke printer
+    // RawBT
     if (printerConfig.method === 'rawbt' || printerConfig.method === 'auto') {
-      const base64 = bytesToBase64(ticketData);
-      window.location.href = `rawbt:base64,${base64}`;
+      printViaRawBT(ticketData);
       return true;
     }
   }
 
-  // Fallback: sistem print browser
+  // Fallback: browser print
   window.print();
   return true;
 };
 
 const bytesToBase64 = (bytes: Uint8Array): string => {
-  // Hindari stack overflow untuk data besar
   let binary = '';
   for (let i = 0; i < bytes.length; i++) {
     binary += String.fromCharCode(bytes[i]);
@@ -407,7 +413,7 @@ export const getPrinterConfig = (): PrinterConfig => {
   const stored = localStorage.getItem('printerConfig');
   if (stored) {
     const parsed = JSON.parse(stored);
-    // Tambahkan default platform jika belum ada (migrasi)
+    // Migration: add default platform if missing
     if (!parsed.platform) {
       parsed.platform = 'desktop';
       localStorage.setItem('printerConfig', JSON.stringify(parsed));
@@ -419,6 +425,7 @@ export const getPrinterConfig = (): PrinterConfig => {
     method: 'auto',
     platform: 'desktop',
     paperSize: '80mm',
+    useDesktopEscPos: false,
   };
   localStorage.setItem('printerConfig', JSON.stringify(defaultConfig));
   return defaultConfig;
