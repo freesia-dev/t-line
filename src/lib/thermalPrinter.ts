@@ -450,7 +450,7 @@ const printViaRawBT = (data: Uint8Array): Promise<boolean> => {
   });
 };
 
-// Silent browser print (creates hidden iframe and prints)
+// Silent browser print using hidden iframe
 const printViaBrowserSilent = async (
   type: 'CS' | 'TELLER',
   number: number,
@@ -458,15 +458,6 @@ const printViaBrowserSilent = async (
   config: PrintConfig
 ): Promise<boolean> => {
   return new Promise((resolve) => {
-    // Create print content
-    const printWindow = window.open('', '_blank', 'width=300,height=400');
-    if (!printWindow) {
-      // Fallback ke window.print() biasa
-      window.print();
-      resolve(true);
-      return;
-    }
-
     const formattedNumber = type === 'CS' ? `B${String(number).padStart(3, '0')}` : `A${String(number).padStart(3, '0')}`;
     const now = new Date();
     const visitDate = now.toLocaleDateString('id-ID', {
@@ -480,7 +471,26 @@ const printViaBrowserSilent = async (
       minute: '2-digit',
     });
 
-    printWindow.document.write(`
+    // Create hidden iframe for printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.top = '-9999px';
+    iframe.style.left = '-9999px';
+    iframe.style.width = '58mm';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!iframeDoc) {
+      document.body.removeChild(iframe);
+      window.print();
+      resolve(true);
+      return;
+    }
+
+    iframeDoc.open();
+    iframeDoc.write(`
       <!DOCTYPE html>
       <html>
       <head>
@@ -497,7 +507,7 @@ const printViaBrowserSilent = async (
           }
           body { 
             font-family: 'Courier New', monospace; 
-            font-size: 10pt; 
+            font-size: 10pt;
             width: 58mm;
             padding: 2mm;
             text-align: center;
@@ -540,26 +550,25 @@ const printViaBrowserSilent = async (
       </body>
       </html>
     `);
-    
-    printWindow.document.close();
+    iframeDoc.close();
     
     // Wait for content to load then print
-    printWindow.onload = () => {
-      printWindow.print();
-      printWindow.close();
-      resolve(true);
-    };
-
-    // Fallback if onload doesn't fire
     setTimeout(() => {
       try {
-        printWindow.print();
-        printWindow.close();
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
       } catch (e) {
-        console.error('Print window error:', e);
+        console.error('Iframe print error:', e);
+        window.print();
       }
+      
+      // Cleanup after printing
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+      
       resolve(true);
-    }, 500);
+    }, 100);
   });
 };
 
