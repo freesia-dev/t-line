@@ -21,13 +21,12 @@ import {
   saveTVDisplayConfig,
   getVoiceConfig,
   saveVoiceConfig,
-  getQueueState,
-  resetQueue,
   PrintConfig,
   DisplayConfig,
   TVDisplayConfig,
   VoiceConfig,
 } from '@/lib/queueStore';
+import { fetchQueueState, resetQueue, QueueState } from '@/lib/supabaseQueueStore';
 import { getAllVoices } from '@/lib/audioUtils';
 import { toast } from 'sonner';
 import { RotateCcw, Save, Printer, Monitor, Tv, ExternalLink, Volume2, Bluetooth } from 'lucide-react';
@@ -38,11 +37,11 @@ const Konfigurasi = () => {
   const [displayConfig, setDisplayConfig] = useState<DisplayConfig>(getDisplayConfig());
   const [tvConfig, setTVConfig] = useState<TVDisplayConfig>(getTVDisplayConfig());
   const [voiceConfig, setVoiceConfig] = useState<VoiceConfig>(getVoiceConfig());
-  const [queueState, setQueueState] = useState(getQueueState());
+  const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   useEffect(() => {
-    setQueueState(getQueueState());
+    fetchQueueState().then(setQueueState);
     
     // Load available voices
     const loadVoices = () => {
@@ -83,11 +82,16 @@ const Konfigurasi = () => {
     await announceQueue('A001', 'Teller 1');
   };
 
-  const handleResetQueue = () => {
+  const handleResetQueue = async () => {
     if (confirm('Apakah Anda yakin ingin mereset semua antrian?')) {
-      resetQueue();
-      setQueueState(getQueueState());
-      toast.success('Antrian berhasil direset');
+      const success = await resetQueue();
+      if (success) {
+        const newState = await fetchQueueState();
+        setQueueState(newState);
+        toast.success('Antrian berhasil direset');
+      } else {
+        toast.error('Gagal mereset antrian');
+      }
     }
   };
 
@@ -181,6 +185,22 @@ const Konfigurasi = () => {
                       checked={displayConfig.showQueueCount}
                       onCheckedChange={(checked) =>
                         setDisplayConfig({ ...displayConfig, showQueueCount: checked })
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="directPrint">Langsung Cetak</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Langsung cetak tanpa menampilkan popup konfirmasi
+                      </p>
+                    </div>
+                    <Switch
+                      id="directPrint"
+                      checked={displayConfig.directPrint}
+                      onCheckedChange={(checked) =>
+                        setDisplayConfig({ ...displayConfig, directPrint: checked })
                       }
                     />
                   </div>
@@ -692,13 +712,13 @@ const Konfigurasi = () => {
                     <div className="rounded-xl bg-primary/10 p-6 text-center">
                       <p className="text-sm text-muted-foreground">Antrian CS</p>
                       <p className="mt-2 text-4xl font-bold text-primary">
-                        {queueState.csQueue}
+                        {queueState?.cs_queue ?? 0}
                       </p>
                     </div>
                     <div className="rounded-xl bg-secondary/10 p-6 text-center">
                       <p className="text-sm text-muted-foreground">Antrian Teller</p>
                       <p className="mt-2 text-4xl font-bold text-secondary">
-                        {queueState.tellerQueue}
+                        {queueState?.teller_queue ?? 0}
                       </p>
                     </div>
                   </div>

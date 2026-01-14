@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { PrintConfig, formatQueueNumber } from '@/lib/queueStore';
+import { PrintConfig, DisplayConfig, formatQueueNumber, getDisplayConfig } from '@/lib/queueStore';
 import { 
   getPrinterConfig, 
   generateTicketData, 
@@ -207,7 +207,9 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
   const [showDialog, setShowDialog] = useState(true);
   const [isPrinting, setIsPrinting] = useState(false);
   const hasTriggeredBrowserPrint = useRef(false);
+  const hasDirectPrinted = useRef(false);
   const printerConfig = getPrinterConfig();
+  const displayConfig = getDisplayConfig();
 
   // Determine if we should use ESC/POS (1-tap button) or browser print (auto)
   const isEscPosMode = 
@@ -246,6 +248,17 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
   }, [type, number, remaining, config, printerConfig, onPrinted]);
 
   // Handle close without printing
+  // Auto-print for direct print mode (ESC/POS)
+  useEffect(() => {
+    if (!isEscPosMode) return;
+    if (!displayConfig.directPrint) return;
+    if (hasDirectPrinted.current) return;
+    hasDirectPrinted.current = true;
+    
+    // Trigger print immediately without showing dialog
+    handlePrint();
+  }, [isEscPosMode, displayConfig.directPrint, handlePrint]);
+
   const handleClose = useCallback(() => {
     setShowDialog(false);
     onPrinted?.();
@@ -356,8 +369,13 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
     return () => window.clearTimeout(t);
   }, [config, onPrinted, isEscPosMode]);
 
-  // ESC/POS mode: show print dialog with 1-tap button
+  // ESC/POS mode: show print dialog with 1-tap button (unless direct print)
   if (isEscPosMode) {
+    // If direct print is enabled, don't show dialog
+    if (displayConfig.directPrint) {
+      return null;
+    }
+    
     return (
       <AnimatePresence>
         {showDialog && (
