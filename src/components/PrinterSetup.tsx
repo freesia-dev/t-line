@@ -54,12 +54,23 @@ const PrinterSetup = () => {
   const handleConnect = async () => {
     setIsConnecting(true);
     try {
-      await connectToPrinter();
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Koneksi timeout. Silakan coba lagi.')), 30000);
+      });
+      
+      await Promise.race([connectToPrinter(), timeoutPromise]);
       setIsConnected(true);
       setDeviceName(getConnectedDeviceName());
       toast.success('Printer terhubung!');
     } catch (error) {
-      toast.error((error as Error).message || 'Gagal menghubungkan printer');
+      const errorMessage = (error as Error).message || 'Gagal menghubungkan printer';
+      // Handle user cancellation gracefully
+      if ((error as Error).name === 'NotFoundError' || errorMessage.includes('cancelled')) {
+        toast.info('Pemilihan printer dibatalkan');
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setIsConnecting(false);
     }
