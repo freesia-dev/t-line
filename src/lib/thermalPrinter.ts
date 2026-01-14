@@ -35,6 +35,7 @@ export interface PrinterDevice {
 
 export interface PrinterConfig {
   method: 'webBluetooth' | 'rawbt' | 'auto';
+  platform: 'desktop' | 'android'; // Mode kiosk: desktop (browser PC) atau android
   deviceId?: string;
   deviceName?: string;
   paperSize: '58mm' | '80mm';
@@ -350,7 +351,7 @@ export const printViaBluetooth = async (data: Uint8Array): Promise<boolean> => {
   }
 };
 
-// Print ticket (auto-select method)
+// Print ticket (auto-select method based on platform)
 export const printTicket = async (
   type: 'CS' | 'TELLER',
   number: number,
@@ -360,23 +361,31 @@ export const printTicket = async (
 ): Promise<boolean> => {
   const ticketData = generateTicketData(type, number, remaining, config);
 
-  if (
-    printerConfig.method === 'webBluetooth' ||
-    (printerConfig.method === 'auto' && isPrinterConnected())
-  ) {
-    // Try Web Bluetooth first
-    if (!isPrinterConnected()) {
-      await connectToPrinter(printerConfig.deviceId);
-    }
-    return await printViaBluetooth(ticketData);
+  // Mode DESKTOP: selalu gunakan window.print() (CSS print styles)
+  if (printerConfig.platform === 'desktop') {
+    window.print();
+    return true;
   }
 
-  // RawBT (Android) - kirim RAW ESC/POS bytes supaya panjang kertas mengikuti konten
-  const isAndroid = /Android/i.test(navigator.userAgent);
-  if (printerConfig.method === 'rawbt' || (printerConfig.method === 'auto' && isAndroid)) {
-    const base64 = bytesToBase64(ticketData);
-    window.location.href = `rawbt:base64,${base64}`;
-    return true;
+  // Mode ANDROID: prioritas Web Bluetooth > RawBT
+  if (printerConfig.platform === 'android') {
+    // Coba Web Bluetooth jika terhubung atau dipilih
+    if (
+      printerConfig.method === 'webBluetooth' ||
+      (printerConfig.method === 'auto' && isPrinterConnected())
+    ) {
+      if (!isPrinterConnected()) {
+        await connectToPrinter(printerConfig.deviceId);
+      }
+      return await printViaBluetooth(ticketData);
+    }
+
+    // RawBT - kirim RAW ESC/POS bytes langsung ke printer
+    if (printerConfig.method === 'rawbt' || printerConfig.method === 'auto') {
+      const base64 = bytesToBase64(ticketData);
+      window.location.href = `rawbt:base64,${base64}`;
+      return true;
+    }
   }
 
   // Fallback: sistem print browser
@@ -397,10 +406,18 @@ const bytesToBase64 = (bytes: Uint8Array): string => {
 export const getPrinterConfig = (): PrinterConfig => {
   const stored = localStorage.getItem('printerConfig');
   if (stored) {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    // Tambahkan default platform jika belum ada (migrasi)
+    if (!parsed.platform) {
+      parsed.platform = 'desktop';
+      localStorage.setItem('printerConfig', JSON.stringify(parsed));
+    }
+    return parsed;
   }
+  // Default: desktop mode
   const defaultConfig: PrinterConfig = {
     method: 'auto',
+    platform: 'desktop',
     paperSize: '80mm',
   };
   localStorage.setItem('printerConfig', JSON.stringify(defaultConfig));
