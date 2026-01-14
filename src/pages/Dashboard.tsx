@@ -170,13 +170,15 @@ const Dashboard = () => {
       {/* Print ticket (hidden, only shown when printing) */}
       <AnimatePresence>
         {printData && (
-          <PrintTicket
-            type={printData.type}
-            number={printData.number}
-            remaining={printData.remaining}
-            config={printConfig}
-            onPrinted={handlePrinted}
-          />
+          <motion.div key={`${printData.type}-${printData.number}`} initial={false}>
+            <PrintTicket
+              type={printData.type}
+              number={printData.number}
+              remaining={printData.remaining}
+              config={printConfig}
+              onPrinted={handlePrinted}
+            />
+          </motion.div>
         )}
       </AnimatePresence>
     </>
