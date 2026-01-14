@@ -40,14 +40,24 @@ export interface TVDisplayConfig {
   runningTextBgColor: string;
 }
 
+export interface PronunciationMapping {
+  original: string;
+  spoken: string;
+}
+
 export interface VoiceConfig {
   voiceName: string;
   speed: 'slow' | 'normal' | 'fast';
+  pronunciations: PronunciationMapping[];
 }
 
 const DEFAULT_VOICE_CONFIG: VoiceConfig = {
   voiceName: '',
   speed: 'normal',
+  pronunciations: [
+    { original: 'Customer Service', spoken: 'Kastamer Servis' },
+    { original: 'Teller', spoken: 'Teler' },
+  ],
 };
 
 const DEFAULT_QUEUE_STATE: QueueState = {

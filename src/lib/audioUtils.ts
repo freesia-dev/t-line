@@ -210,13 +210,30 @@ const playBrowserTTS = (text: string, speed: number, voiceName?: string): Promis
   });
 };
 
+// Apply pronunciation mappings to text
+const applyPronunciationMappings = (text: string, pronunciations: Array<{ original: string; spoken: string }>): string => {
+  let result = text;
+  for (const mapping of pronunciations) {
+    if (mapping.original && mapping.spoken) {
+      // Case-insensitive replacement
+      const regex = new RegExp(mapping.original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      result = result.replace(regex, mapping.spoken);
+    }
+  }
+  return result;
+};
+
 // Main announcement function with Indonesian pronunciation
 export const announceQueue = async (queueNumber: string, destination: string) => {
   const voiceConfig = getVoiceConfig();
   
   // Format queue number for proper Indonesian pronunciation
   const spokenQueueNumber = formatQueueForSpeech(queueNumber);
-  const announcementText = `Nomor antrian ${spokenQueueNumber}, silakan menuju ke ${destination}`;
+  
+  // Apply pronunciation mappings to destination
+  const spokenDestination = applyPronunciationMappings(destination, voiceConfig.pronunciations || []);
+  
+  const announcementText = `Nomor antrian ${spokenQueueNumber}, silakan menuju ke ${spokenDestination}`;
   
   // Play ding first
   await playDingSound();
