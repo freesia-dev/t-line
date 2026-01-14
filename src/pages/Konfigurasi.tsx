@@ -25,11 +25,12 @@ import {
   DisplayConfig,
   TVDisplayConfig,
   VoiceConfig,
+  PronunciationMapping,
 } from '@/lib/queueStore';
 import { fetchQueueState, resetQueue, QueueState } from '@/lib/supabaseQueueStore';
 import { getAllVoices } from '@/lib/audioUtils';
 import { toast } from 'sonner';
-import { RotateCcw, Save, Printer, Monitor, Tv, ExternalLink, Volume2, Bluetooth } from 'lucide-react';
+import { RotateCcw, Save, Printer, Monitor, Tv, ExternalLink, Volume2, Bluetooth, Plus, Trash2 } from 'lucide-react';
 import PrinterSetup from '@/components/PrinterSetup';
 
 const Konfigurasi = () => {
@@ -549,11 +550,79 @@ const Konfigurasi = () => {
                     </Select>
                   </div>
 
+                  {/* Pronunciation Mapping Section */}
+                  <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Pengaturan Pelafalan</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Ubah cara pelafalan kata tertentu
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newPronunciations = [...(voiceConfig.pronunciations || []), { original: '', spoken: '' }];
+                          setVoiceConfig({ ...voiceConfig, pronunciations: newPronunciations });
+                        }}
+                        className="gap-1"
+                      >
+                        <Plus size={16} />
+                        Tambah
+                      </Button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {(voiceConfig.pronunciations || []).map((mapping, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <div className="flex-1 grid grid-cols-2 gap-2">
+                            <Input
+                              placeholder="Teks asli (Customer Service)"
+                              value={mapping.original}
+                              onChange={(e) => {
+                                const newPronunciations = [...(voiceConfig.pronunciations || [])];
+                                newPronunciations[index] = { ...mapping, original: e.target.value };
+                                setVoiceConfig({ ...voiceConfig, pronunciations: newPronunciations });
+                              }}
+                            />
+                            <Input
+                              placeholder="Dibaca sebagai (Kastamer Servis)"
+                              value={mapping.spoken}
+                              onChange={(e) => {
+                                const newPronunciations = [...(voiceConfig.pronunciations || [])];
+                                newPronunciations[index] = { ...mapping, spoken: e.target.value };
+                                setVoiceConfig({ ...voiceConfig, pronunciations: newPronunciations });
+                              }}
+                            />
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              const newPronunciations = (voiceConfig.pronunciations || []).filter((_, i) => i !== index);
+                              setVoiceConfig({ ...voiceConfig, pronunciations: newPronunciations });
+                            }}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      ))}
+                      {(!voiceConfig.pronunciations || voiceConfig.pronunciations.length === 0) && (
+                        <p className="text-sm text-muted-foreground text-center py-2">
+                          Belum ada pengaturan pelafalan khusus
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                     <p className="text-sm text-foreground">
                       <strong>Contoh pelafalan:</strong><br />
                       A001 → "A nol nol satu"<br />
-                      B123 → "B satu dua tiga"
+                      B123 → "B seratus dua puluh tiga"<br />
+                      Customer Service → "Kastamer Servis" (jika diatur)
                     </p>
                   </div>
 
