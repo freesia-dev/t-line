@@ -283,9 +283,9 @@ export const generateTicketData = (
     commands.push(...encoder.encode(line), LF);
   });
 
-  // Feed minimal dan cut (2 baris cukup untuk clearance pisau)
-  commands.push(...ESCPOS.FEED_LINES(2));
-  commands.push(...ESCPOS.CUT_PAPER_PARTIAL);
+  // Feed minimal untuk sobek manual.
+  // Banyak printer portable TIDAK punya cutter; perintah CUT bisa memicu feed panjang.
+  commands.push(...ESCPOS.FEED_LINES(1));
 
   return new Uint8Array(commands);
 };
@@ -360,8 +360,10 @@ export const printTicket = async (
 ): Promise<boolean> => {
   const ticketData = generateTicketData(type, number, remaining, config);
 
-  if (printerConfig.method === 'webBluetooth' || 
-      (printerConfig.method === 'auto' && isPrinterConnected())) {
+  if (
+    printerConfig.method === 'webBluetooth' ||
+    (printerConfig.method === 'auto' && isPrinterConnected())
+  ) {
     // Try Web Bluetooth first
     if (!isPrinterConnected()) {
       await connectToPrinter(printerConfig.deviceId);
@@ -369,11 +371,26 @@ export const printTicket = async (
     return await printViaBluetooth(ticketData);
   }
 
-  // Fallback to RawBT / window.print()
-  return new Promise((resolve) => {
-    window.print();
-    resolve(true);
-  });
+  // RawBT (Android) - kirim RAW ESC/POS bytes supaya panjang kertas mengikuti konten
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  if (printerConfig.method === 'rawbt' || (printerConfig.method === 'auto' && isAndroid)) {
+    const base64 = bytesToBase64(ticketData);
+    window.location.href = `rawbt:base64,${base64}`;
+    return true;
+  }
+
+  // Fallback: sistem print browser
+  window.print();
+  return true;
+};
+
+const bytesToBase64 = (bytes: Uint8Array): string => {
+  // Hindari stack overflow untuk data besar
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
 };
 
 // Printer config storage
