@@ -391,9 +391,21 @@ export const printViaBluetooth = async (data: Uint8Array): Promise<boolean> => {
 };
 
 // Print via RawBT (Android or Desktop bridge)
+// Uses hidden iframe to trigger intent without navigating away from PWA
 export const printViaRawBT = (data: Uint8Array): void => {
   const base64 = bytesToBase64(data);
-  window.location.href = `rawbt:base64,${base64}`;
+  const intentUrl = `rawbt:base64,${base64}`;
+  
+  // Try iframe method first (keeps PWA in foreground)
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'display:none;width:0;height:0;border:0;position:absolute;';
+  iframe.src = intentUrl;
+  document.body.appendChild(iframe);
+  
+  // Cleanup after intent is triggered
+  setTimeout(() => {
+    iframe.remove();
+  }, 500);
 };
 
 // Print ticket (auto-select method based on platform)
