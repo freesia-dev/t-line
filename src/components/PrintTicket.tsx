@@ -236,11 +236,9 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
         printViaRawBT(ticketData);
       }
       
-      // Close dialog after triggering print
-      setTimeout(() => {
-        setShowDialog(false);
-        onPrinted?.();
-      }, 300);
+      // Close dialog immediately after triggering print
+      setShowDialog(false);
+      onPrinted?.();
     } catch (err) {
       console.error('Print error:', err);
       setIsPrinting(false);

@@ -402,10 +402,10 @@ export const printViaRawBT = (data: Uint8Array): void => {
   iframe.src = intentUrl;
   document.body.appendChild(iframe);
   
-  // Cleanup after intent is triggered
+  // Cleanup after intent is triggered (fast cleanup)
   setTimeout(() => {
     iframe.remove();
-  }, 500);
+  }, 100);
 };
 
 // Print ticket (auto-select method based on platform)
