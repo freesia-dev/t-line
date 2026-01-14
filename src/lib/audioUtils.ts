@@ -1,6 +1,16 @@
 // Audio utilities for queue system with Indonesian TTS
 
-import { getVoiceConfig } from './queueStore';
+import { getVoiceConfig, CustomAudioPhrase } from './queueStore';
+
+// Play a custom audio file and return a promise
+const playCustomAudio = (url: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const audio = new Audio(url);
+    audio.onended = () => resolve();
+    audio.onerror = () => reject(new Error('Failed to play audio'));
+    audio.play().catch(reject);
+  });
+};
 
 // Convert digit to Indonesian word
 const digitToIndonesian = (digit: string): string => {
@@ -223,17 +233,79 @@ const applyPronunciationMappings = (text: string, pronunciations: Array<{ origin
   return result;
 };
 
+// Helper to get custom audio URL by phrase key
+const getCustomAudioUrl = (phrases: CustomAudioPhrase[], phraseKey: string): string | null => {
+  const phrase = phrases.find((p) => p.phrase === phraseKey);
+  return phrase?.audioUrl || null;
+};
+
+// Announcement with custom audio: plays custom recordings for phrases, TTS only for queue number
+const announceWithCustomAudio = async (
+  queueNumber: string,
+  destination: string,
+  voiceConfig: ReturnType<typeof getVoiceConfig>
+) => {
+  const { customAudioPhrases, speed, voiceName } = voiceConfig;
+  const browserSpeed = getBrowserTTSSpeed(speed);
+  
+  // Determine which destination audio to use
+  const isTeller = destination.toLowerCase().includes('teller');
+  const destinationPhraseKey = isTeller ? 'teller' : 'customer_service';
+  
+  // Get custom audio URLs
+  const nomorAntrianAudio = getCustomAudioUrl(customAudioPhrases, 'nomor_antrian');
+  const silakanMenujuAudio = getCustomAudioUrl(customAudioPhrases, 'silakan_menuju');
+  const destinationAudio = getCustomAudioUrl(customAudioPhrases, destinationPhraseKey);
+  
+  // Format queue number for TTS
+  const spokenQueueNumber = formatQueueForSpeech(queueNumber);
+  
+  try {
+    // Play "Nomor Antrian" (custom or TTS)
+    if (nomorAntrianAudio) {
+      await playCustomAudio(nomorAntrianAudio);
+    } else {
+      await playBrowserTTS('Nomor antrian', browserSpeed, voiceName);
+    }
+    
+    // Small pause
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // Play queue number via TTS (always TTS - e.g., "A nol nol satu")
+    await playBrowserTTS(spokenQueueNumber, browserSpeed, voiceName);
+    
+    // Small pause
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // Play "Silakan Menuju ke" (custom or TTS)
+    if (silakanMenujuAudio) {
+      await playCustomAudio(silakanMenujuAudio);
+    } else {
+      await playBrowserTTS('silakan menuju ke', browserSpeed, voiceName);
+    }
+    
+    // Small pause
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // Play destination (custom or TTS)
+    if (destinationAudio) {
+      await playCustomAudio(destinationAudio);
+    } else {
+      const spokenDestination = applyPronunciationMappings(destination, voiceConfig.pronunciations || []);
+      await playBrowserTTS(spokenDestination, browserSpeed, voiceName);
+    }
+  } catch (error) {
+    console.error('Error playing custom audio announcement:', error);
+    // Fallback to full TTS
+    const spokenDestination = applyPronunciationMappings(destination, voiceConfig.pronunciations || []);
+    const fallbackText = `Nomor antrian ${spokenQueueNumber}, silakan menuju ke ${spokenDestination}`;
+    await playBrowserTTS(fallbackText, browserSpeed, voiceName);
+  }
+};
+
 // Main announcement function with Indonesian pronunciation
 export const announceQueue = async (queueNumber: string, destination: string) => {
   const voiceConfig = getVoiceConfig();
-  
-  // Format queue number for proper Indonesian pronunciation
-  const spokenQueueNumber = formatQueueForSpeech(queueNumber);
-  
-  // Apply pronunciation mappings to destination
-  const spokenDestination = applyPronunciationMappings(destination, voiceConfig.pronunciations || []);
-  
-  const announcementText = `Nomor antrian ${spokenQueueNumber}, silakan menuju ke ${spokenDestination}`;
   
   // Play ding first
   await playDingSound();
@@ -241,7 +313,19 @@ export const announceQueue = async (queueNumber: string, destination: string) =>
   // Small delay after ding
   await new Promise(resolve => setTimeout(resolve, 300));
   
-  // Use browser TTS with proper Indonesian pronunciation
-  const browserSpeed = getBrowserTTSSpeed(voiceConfig.speed);
-  await playBrowserTTS(announcementText, browserSpeed, voiceConfig.voiceName);
+  // Check if custom audio is enabled and has any audio uploaded
+  const hasCustomAudio = voiceConfig.useCustomAudio && 
+    voiceConfig.customAudioPhrases?.some(p => p.audioUrl);
+  
+  if (hasCustomAudio) {
+    // Use custom audio announcement
+    await announceWithCustomAudio(queueNumber, destination, voiceConfig);
+  } else {
+    // Use full TTS announcement
+    const spokenQueueNumber = formatQueueForSpeech(queueNumber);
+    const spokenDestination = applyPronunciationMappings(destination, voiceConfig.pronunciations || []);
+    const announcementText = `Nomor antrian ${spokenQueueNumber}, silakan menuju ke ${spokenDestination}`;
+    const browserSpeed = getBrowserTTSSpeed(voiceConfig.speed);
+    await playBrowserTTS(announcementText, browserSpeed, voiceConfig.voiceName);
+  }
 };

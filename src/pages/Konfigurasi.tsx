@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import LayoutPreview from '@/components/DisplayLayoutPreview';
 import MediaUploader from '@/components/MediaUploader';
 import SlideshowSelector from '@/components/SlideshowSelector';
+import AudioPhraseUploader from '@/components/AudioPhraseUploader';
 import {
   getPrintConfig,
   savePrintConfig,
@@ -617,12 +618,44 @@ const Konfigurasi = () => {
                     </div>
                   </div>
 
+                  {/* Custom Audio Section */}
+                  <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="useCustomAudio">Gunakan Audio Rekaman</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Gunakan rekaman suara untuk kata-kata tertentu, TTS hanya untuk nomor antrian
+                        </p>
+                      </div>
+                      <Switch
+                        id="useCustomAudio"
+                        checked={voiceConfig.useCustomAudio}
+                        onCheckedChange={(checked) =>
+                          setVoiceConfig({ ...voiceConfig, useCustomAudio: checked })
+                        }
+                      />
+                    </div>
+
+                    {voiceConfig.useCustomAudio && (
+                      <AudioPhraseUploader
+                        phrases={voiceConfig.customAudioPhrases || []}
+                        onUpdate={(phrases) =>
+                          setVoiceConfig({ ...voiceConfig, customAudioPhrases: phrases })
+                        }
+                      />
+                    )}
+                  </div>
+
                   <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                     <p className="text-sm text-foreground">
                       <strong>Contoh pelafalan:</strong><br />
                       A001 → "A nol nol satu"<br />
                       B123 → "B seratus dua puluh tiga"<br />
-                      Customer Service → "Kastamer Servis" (jika diatur)
+                      {voiceConfig.useCustomAudio ? (
+                        <>Format: [Rekaman "Nomor Antrian"] + [TTS A001] + [Rekaman "Silakan Menuju ke"] + [Rekaman "Teller/CS"]</>
+                      ) : (
+                        <>Customer Service → "Kastamer Servis" (jika diatur)</>
+                      )}
                     </p>
                   </div>
 
