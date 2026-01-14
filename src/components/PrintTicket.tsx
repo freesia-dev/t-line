@@ -1,6 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { PrintConfig, formatQueueNumber } from '@/lib/queueStore';
+import { 
+  getPrinterConfig, 
+  generateTicketData, 
+  printViaRawBT, 
+  printViaBluetooth, 
+  isPrinterConnected 
+} from '@/lib/thermalPrinter';
 import logoBank from '@/assets/logo-bankaltimtara.png';
 
 interface PrintTicketProps {
@@ -136,6 +143,50 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
     if (hasTriggeredPrint.current) return;
     hasTriggeredPrint.current = true;
 
+    const printerConfig = getPrinterConfig();
+    
+    // Check if we should use ESC/POS (RawBT or Bluetooth) instead of browser print
+    const shouldUseEscPos = () => {
+      // Desktop with ESC/POS mode enabled
+      if (printerConfig.platform === 'desktop' && printerConfig.useDesktopEscPos) {
+        return true;
+      }
+      // Android always uses ESC/POS
+      if (printerConfig.platform === 'android') {
+        return true;
+      }
+      return false;
+    };
+
+    // ESC/POS printing (RawBT or Bluetooth)
+    if (shouldUseEscPos()) {
+      const ticketData = generateTicketData(type, number, remaining, config);
+      
+      // Android: check method preference
+      if (printerConfig.platform === 'android') {
+        if (printerConfig.method === 'webBluetooth' && isPrinterConnected()) {
+          // Use Bluetooth
+          printViaBluetooth(ticketData)
+            .then(() => onPrinted?.())
+            .catch((err) => {
+              console.error('Bluetooth print failed, falling back to RawBT:', err);
+              printViaRawBT(ticketData);
+              onPrinted?.();
+            });
+        } else {
+          // Use RawBT
+          printViaRawBT(ticketData);
+          onPrinted?.();
+        }
+      } else {
+        // Desktop ESC/POS mode - use RawBT Desktop bridge
+        printViaRawBT(ticketData);
+        onPrinted?.();
+      }
+      return;
+    }
+
+    // Browser print fallback for desktop without ESC/POS
     const waitImages = (doc: Document) => {
       const imgs = Array.from(doc.images || []);
       if (!imgs.length) return Promise.resolve();
@@ -234,7 +285,17 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
     }, 50);
 
     return () => window.clearTimeout(t);
-  }, [config, onPrinted]);
+  }, [type, number, remaining, config, onPrinted]);
+
+  // For ESC/POS modes, we don't need the visual ticket
+  const printerConfig = getPrinterConfig();
+  const isEscPosMode = 
+    (printerConfig.platform === 'desktop' && printerConfig.useDesktopEscPos) ||
+    printerConfig.platform === 'android';
+
+  if (isEscPosMode) {
+    return null; // No visual rendering needed for ESC/POS
+  }
 
   return createPortal(
     <PrintTicketContent type={type} number={number} remaining={remaining} config={config} />, 
