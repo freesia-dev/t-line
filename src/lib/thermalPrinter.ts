@@ -110,44 +110,65 @@ export const scanForPrinters = async (): Promise<PrinterDevice[]> => {
 // Connect to a Bluetooth printer
 export const connectToPrinter = async (deviceId?: string): Promise<boolean> => {
   if (!isWebBluetoothSupported()) {
-    throw new Error('Web Bluetooth tidak didukung');
+    throw new Error('Web Bluetooth tidak didukung di browser ini. Gunakan Chrome.');
   }
 
   try {
     let device: BluetoothDevice;
 
-    if (deviceId && connectedDevice?.id === deviceId) {
-      device = connectedDevice;
-    } else {
+    if (deviceId && connectedDevice?.id === deviceId && connectedDevice.gatt?.connected) {
+      // Already connected to this device
+      return true;
+    }
+    
+    // Request device with acceptAllDevices for broader compatibility
+    try {
       device = await navigator.bluetooth.requestDevice({
-        filters: [
-          { services: [PRINTER_SERVICE_UUID] },
-          { namePrefix: 'Printer' },
-          { namePrefix: 'POS' },
-          { namePrefix: 'RPP' },
-          { namePrefix: 'MTP' },
-          { namePrefix: 'Thermal' },
-          { namePrefix: 'BlueTooth' },
-          { namePrefix: 'BT' },
-        ],
+        acceptAllDevices: true,
         optionalServices: ALT_SERVICE_UUIDS,
       });
+    } catch (requestError) {
+      // User cancelled or no devices found
+      if ((requestError as Error).name === 'NotFoundError') {
+        throw new Error('Tidak ada printer yang dipilih');
+      }
+      throw requestError;
+    }
+
+    if (!device) {
+      throw new Error('Tidak ada printer yang dipilih');
     }
 
     if (!device.gatt) {
-      throw new Error('GATT tidak tersedia');
+      throw new Error('GATT tidak tersedia pada perangkat ini');
     }
 
+    console.log('Connecting to device:', device.name);
     const server = await device.gatt.connect();
+    console.log('Connected to GATT server');
 
     // Try different service UUIDs
     let service: BluetoothRemoteGATTService | null = null;
     for (const uuid of ALT_SERVICE_UUIDS) {
       try {
         service = await server.getPrimaryService(uuid);
+        console.log('Found service:', uuid);
         if (service) break;
       } catch {
         continue;
+      }
+    }
+
+    if (!service) {
+      // Try to get any available service
+      try {
+        const services = await server.getPrimaryServices();
+        if (services.length > 0) {
+          service = services[0];
+          console.log('Using first available service:', service.uuid);
+        }
+      } catch {
+        throw new Error('Tidak dapat menemukan service printer. Pastikan printer mendukung BLE.');
       }
     }
 
@@ -160,9 +181,26 @@ export const connectToPrinter = async (deviceId?: string): Promise<boolean> => {
     for (const uuid of ALT_CHAR_UUIDS) {
       try {
         characteristic = await service.getCharacteristic(uuid);
+        console.log('Found characteristic:', uuid);
         if (characteristic) break;
       } catch {
         continue;
+      }
+    }
+
+    if (!characteristic) {
+      // Try to get any writable characteristic
+      try {
+        const characteristics = await service.getCharacteristics();
+        for (const char of characteristics) {
+          if (char.properties.write || char.properties.writeWithoutResponse) {
+            characteristic = char;
+            console.log('Using writable characteristic:', char.uuid);
+            break;
+          }
+        }
+      } catch {
+        throw new Error('Tidak dapat menemukan characteristic printer.');
       }
     }
 
@@ -180,9 +218,13 @@ export const connectToPrinter = async (deviceId?: string): Promise<boolean> => {
       type: 'bluetooth',
     });
 
+    console.log('Printer connected successfully:', device.name);
     return true;
   } catch (error) {
     console.error('Error connecting to printer:', error);
+    // Clean up on error
+    connectedDevice = null;
+    writerCharacteristic = null;
     throw error;
   }
 };
