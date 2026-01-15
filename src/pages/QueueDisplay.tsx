@@ -255,6 +255,41 @@ const QueueDisplay = () => {
 
     // Slideshow mode
     if (tvConfig.mediaMode === 'slideshow' && tvConfig.slideshowImages.length > 0) {
+      const animationType = tvConfig.slideshowAnimation || 'fade';
+      
+      // Animation variants for different effects
+      const getAnimationVariants = () => {
+        switch (animationType) {
+          case 'slide':
+            return {
+              initial: { x: '100%', opacity: 0 },
+              animate: { x: 0, opacity: 1 },
+              exit: { x: '-100%', opacity: 0 },
+            };
+          case 'slideUp':
+            return {
+              initial: { y: '100%', opacity: 0 },
+              animate: { y: 0, opacity: 1 },
+              exit: { y: '-100%', opacity: 0 },
+            };
+          case 'zoom':
+            return {
+              initial: { scale: 1.2, opacity: 0 },
+              animate: { scale: 1, opacity: 1 },
+              exit: { scale: 0.8, opacity: 0 },
+            };
+          case 'fade':
+          default:
+            return {
+              initial: { opacity: 0 },
+              animate: { opacity: 1 },
+              exit: { opacity: 0 },
+            };
+        }
+      };
+
+      const variants = getAnimationVariants();
+
       return (
         <div className="w-full h-full relative rounded-xl overflow-hidden">
           <AnimatePresence mode="wait">
@@ -263,10 +298,13 @@ const QueueDisplay = () => {
               src={tvConfig.slideshowImages[currentSlide]}
               alt={`Slide ${currentSlide + 1}`}
               className="w-full h-full object-cover absolute inset-0"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
+              initial={variants.initial}
+              animate={variants.animate}
+              exit={variants.exit}
+              transition={{ 
+                duration: 0.8, 
+                ease: [0.4, 0, 0.2, 1] // Smooth easing
+              }}
             />
           </AnimatePresence>
           {/* Slide indicators */}
@@ -274,7 +312,7 @@ const QueueDisplay = () => {
             {tvConfig.slideshowImages.map((_, idx) => (
               <div
                 key={idx}
-                className={`w-2 h-2 rounded-full transition-all ${
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
                   idx === currentSlide ? 'bg-white scale-125' : 'bg-white/50'
                 }`}
               />
