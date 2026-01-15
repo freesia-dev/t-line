@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchQueueState, formatQueueNumber, subscribeToQueueState, QueueState, QueueStatus } from '@/lib/supabaseQueueStore';
 import { getPrintConfig, getTVDisplayConfig, PrintConfig, TVDisplayConfig } from '@/lib/queueStore';
 import { announceQueue } from '@/lib/audioUtils';
 import logoBank from '@/assets/logo-bankaltimtara.png';
-import { Volume2, VolumeX, Maximize, Minimize, Loader2 } from 'lucide-react';
+import { Volume2, VolumeX, Maximize, Minimize, Loader2, WifiOff, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const QueueDisplay = () => {
   const [queueState, setQueueState] = useState<QueueState | null>(null);
@@ -18,12 +19,122 @@ const QueueDisplay = () => {
   const [time, setTime] = useState(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }));
   const [isLoading, setIsLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [wakeLockActive, setWakeLockActive] = useState(false);
   
   const lastCalledRef = useRef<{ type: string | null; number: number | null; at: string | null }>({
     type: null,
     number: null,
     at: null,
   });
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Request Wake Lock to prevent screen sleep
+  const requestWakeLock = useCallback(async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+        setWakeLockActive(true);
+        console.log('Wake Lock activated - screen will stay on');
+        
+        wakeLockRef.current.addEventListener('release', () => {
+          setWakeLockActive(false);
+          console.log('Wake Lock released');
+        });
+      } catch (err) {
+        console.log('Wake Lock request failed:', err);
+      }
+    }
+  }, []);
+
+  // Re-request wake lock when page becomes visible again
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !wakeLockRef.current) {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    requestWakeLock(); // Request on mount
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+      }
+    };
+  }, [requestWakeLock]);
+
+  // Auto-fullscreen on first user interaction
+  useEffect(() => {
+    const handleFirstInteraction = () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+          setIsFullscreen(true);
+        }).catch((err) => {
+          console.log('Auto-fullscreen failed:', err);
+        });
+      }
+      // Remove listener after first interaction
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('touchstart', handleFirstInteraction);
+    };
+
+    document.addEventListener('click', handleFirstInteraction);
+    document.addEventListener('touchstart', handleFirstInteraction);
+
+    // Also listen for fullscreen changes
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('touchstart', handleFirstInteraction);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Network status monitoring and auto-reconnect
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success('Koneksi tersambung kembali', { duration: 3000 });
+      // Refresh data on reconnect
+      fetchQueueState().then((state) => {
+        if (state) setQueueState(state);
+      });
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.error('Koneksi terputus, mencoba menyambung ulang...', { duration: 5000 });
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Auto-refresh every 30 seconds as backup sync
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      if (navigator.onLine) {
+        fetchQueueState().then((state) => {
+          if (state) setQueueState(state);
+        });
+      }
+    }, 30000);
+
+    return () => clearInterval(refreshInterval);
+  }, []);
 
   useEffect(() => {
     fetchQueueState().then((state) => {
@@ -80,6 +191,9 @@ const QueueDisplay = () => {
     return () => {
       unsubscribe();
       clearInterval(configInterval);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
   }, [soundEnabled]);
 
@@ -495,7 +609,14 @@ const QueueDisplay = () => {
               {currentDate}
             </p>
           </div>
-          <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1">
+            {/* Connection status indicator */}
+            <div 
+              className={`h-6 w-6 sm:h-8 sm:w-8 flex items-center justify-center rounded-full ${isOnline ? 'text-green-500' : 'text-red-500'}`}
+              title={isOnline ? 'Terhubung' : 'Tidak terhubung'}
+            >
+              {isOnline ? <Wifi className="h-3 w-3 sm:h-4 sm:w-4" /> : <WifiOff className="h-3 w-3 sm:h-4 sm:w-4" />}
+            </div>
             <Button
               variant="ghost"
               size="icon"
