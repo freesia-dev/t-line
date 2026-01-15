@@ -291,13 +291,13 @@ const QueueDisplay = () => {
       const variants = getAnimationVariants();
 
       return (
-        <div className="w-full h-full relative rounded-xl overflow-hidden">
+        <div className="w-full h-full relative rounded-xl overflow-hidden bg-white">
           <AnimatePresence mode="wait">
             <motion.img
               key={currentSlide}
               src={tvConfig.slideshowImages[currentSlide]}
               alt={`Slide ${currentSlide + 1}`}
-              className="w-full h-full object-cover absolute inset-0"
+              className="w-full h-full object-contain absolute inset-0"
               initial={variants.initial}
               animate={variants.animate}
               exit={variants.exit}
