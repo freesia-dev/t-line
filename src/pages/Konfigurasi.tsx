@@ -365,6 +365,28 @@ const Konfigurasi = () => {
                                 </SelectContent>
                               </Select>
                             </div>
+                            <div className="space-y-2">
+                              <Label>Animasi Transisi</Label>
+                              <Select
+                                value={tvConfig.slideshowAnimation || 'fade'}
+                                onValueChange={(value) =>
+                                  setTVConfig({ ...tvConfig, slideshowAnimation: value as 'fade' | 'slide' | 'zoom' | 'slideUp' })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="fade">Fade (Memudar)</SelectItem>
+                                  <SelectItem value="slide">Slide Kiri-Kanan</SelectItem>
+                                  <SelectItem value="slideUp">Slide Atas-Bawah</SelectItem>
+                                  <SelectItem value="zoom">Zoom (Perbesar)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <p className="text-xs text-muted-foreground">
+                                Pilih efek transisi antar gambar slideshow
+                              </p>
+                            </div>
                           </div>
                         )}
                       </>

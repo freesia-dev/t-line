@@ -25,6 +25,8 @@ export interface DisplayConfig {
   directPrint: boolean;
 }
 
+export type SlideshowAnimation = 'fade' | 'slide' | 'zoom' | 'slideUp';
+
 export interface TVDisplayConfig {
   layout: 'layout1' | 'layout2' | 'layout3' | 'layout4';
   showMedia: boolean;
@@ -33,6 +35,7 @@ export interface TVDisplayConfig {
   mediaMode: 'single' | 'slideshow' | 'video';
   slideshowImages: string[];
   slideshowInterval: number;
+  slideshowAnimation: SlideshowAnimation;
   showRunningText: boolean;
   runningText: string;
   runningTextSpeed: 'slow' | 'medium' | 'fast';
@@ -108,6 +111,7 @@ const DEFAULT_TV_DISPLAY_CONFIG: TVDisplayConfig = {
   mediaMode: 'single',
   slideshowImages: [],
   slideshowInterval: 5,
+  slideshowAnimation: 'fade',
   showRunningText: true,
   runningText: 'Suku Bunga Deposito: 1 Bulan 3.25% | 3 Bulan 3.50% | 6 Bulan 3.75% | 12 Bulan 4.00% | Tabungan Simpeda 1.00% | Giro 0.50%',
   runningTextSpeed: 'medium',
