@@ -391,7 +391,7 @@ export const printViaBluetooth = async (data: Uint8Array): Promise<boolean> => {
 };
 
 // Print via RawBT (Android or Desktop bridge)
-// Uses hidden iframe to trigger intent without navigating away from PWA
+// Multiple methods for maximum Android compatibility
 export const printViaRawBT = (data: Uint8Array): void => {
   const base64 = bytesToBase64(data);
   const intentUrl = `rawbt:base64,${base64}`;
@@ -399,41 +399,55 @@ export const printViaRawBT = (data: Uint8Array): void => {
   console.log('[RawBT] Attempting to print, data size:', data.length, 'bytes');
   console.log('[RawBT] Intent URL length:', intentUrl.length);
   
-  // Method 1: Try window.open (more reliable for custom schemes on some devices)
+  // Method 1: Use <a> tag with click (most reliable for Android 10+)
+  // This simulates a user click which bypasses intent blocking
   try {
-    const popup = window.open(intentUrl, '_blank');
+    const link = document.createElement('a');
+    link.href = intentUrl;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    
+    // Dispatch a proper click event
+    const clickEvent = new MouseEvent('click', {
+      view: window,
+      bubbles: true,
+      cancelable: true
+    });
+    link.dispatchEvent(clickEvent);
+    
+    console.log('[RawBT] Anchor click method triggered');
+    
+    // Cleanup
+    setTimeout(() => {
+      link.remove();
+    }, 100);
+    
+    return;
+  } catch (e) {
+    console.log('[RawBT] Anchor method failed:', e);
+  }
+  
+  // Method 2: Try location.href directly (will navigate but guaranteed to trigger)
+  try {
+    console.log('[RawBT] Trying location.href...');
+    window.location.href = intentUrl;
+    return;
+  } catch (e) {
+    console.log('[RawBT] location.href failed:', e);
+  }
+  
+  // Method 3: window.open as last resort
+  try {
+    const popup = window.open(intentUrl, '_self');
     if (popup) {
       console.log('[RawBT] window.open succeeded');
-      setTimeout(() => {
-        try { popup.close(); } catch { /* ignore */ }
-      }, 500);
       return;
     }
-    console.log('[RawBT] window.open returned null, trying iframe...');
   } catch (e) {
     console.log('[RawBT] window.open failed:', e);
   }
   
-  // Method 2: Try iframe method (keeps PWA in foreground)
-  const iframe = document.createElement('iframe');
-  iframe.style.cssText = 'display:none;width:0;height:0;border:0;position:absolute;left:-9999px;top:-9999px;';
-  iframe.src = intentUrl;
-  document.body.appendChild(iframe);
-  
-  console.log('[RawBT] Iframe method triggered');
-  
-  // Cleanup after intent is triggered - give more time for intent to process
-  setTimeout(() => {
-    iframe.remove();
-    console.log('[RawBT] Iframe cleaned up');
-  }, 1000);
-  
-  // Method 3: Fallback to direct location if iframe doesn't work after delay
-  setTimeout(() => {
-    // Only use this if we detect RawBT didn't respond
-    // This is a last resort as it navigates away from the app
-    console.log('[RawBT] If print not triggered, will retry via location.href');
-  }, 500);
+  console.log('[RawBT] All methods exhausted');
 };
 
 // Print ticket (auto-select method based on platform)
