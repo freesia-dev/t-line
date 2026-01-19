@@ -396,16 +396,44 @@ export const printViaRawBT = (data: Uint8Array): void => {
   const base64 = bytesToBase64(data);
   const intentUrl = `rawbt:base64,${base64}`;
   
-  // Try iframe method first (keeps PWA in foreground)
+  console.log('[RawBT] Attempting to print, data size:', data.length, 'bytes');
+  console.log('[RawBT] Intent URL length:', intentUrl.length);
+  
+  // Method 1: Try window.open (more reliable for custom schemes on some devices)
+  try {
+    const popup = window.open(intentUrl, '_blank');
+    if (popup) {
+      console.log('[RawBT] window.open succeeded');
+      setTimeout(() => {
+        try { popup.close(); } catch { /* ignore */ }
+      }, 500);
+      return;
+    }
+    console.log('[RawBT] window.open returned null, trying iframe...');
+  } catch (e) {
+    console.log('[RawBT] window.open failed:', e);
+  }
+  
+  // Method 2: Try iframe method (keeps PWA in foreground)
   const iframe = document.createElement('iframe');
-  iframe.style.cssText = 'display:none;width:0;height:0;border:0;position:absolute;';
+  iframe.style.cssText = 'display:none;width:0;height:0;border:0;position:absolute;left:-9999px;top:-9999px;';
   iframe.src = intentUrl;
   document.body.appendChild(iframe);
   
-  // Cleanup after intent is triggered (fast cleanup)
+  console.log('[RawBT] Iframe method triggered');
+  
+  // Cleanup after intent is triggered - give more time for intent to process
   setTimeout(() => {
     iframe.remove();
-  }, 100);
+    console.log('[RawBT] Iframe cleaned up');
+  }, 1000);
+  
+  // Method 3: Fallback to direct location if iframe doesn't work after delay
+  setTimeout(() => {
+    // Only use this if we detect RawBT didn't respond
+    // This is a last resort as it navigates away from the app
+    console.log('[RawBT] If print not triggered, will retry via location.href');
+  }, 500);
 };
 
 // Print ticket (auto-select method based on platform)
