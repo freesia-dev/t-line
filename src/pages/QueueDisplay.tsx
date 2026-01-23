@@ -1,14 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchQueueState, formatQueueNumber, subscribeToQueueState, QueueState, QueueStatus } from '@/lib/supabaseQueueStore';
 import { getPrintConfig, getTVDisplayConfig, PrintConfig, TVDisplayConfig } from '@/lib/queueStore';
 import { announceQueue } from '@/lib/audioUtils';
 import logoBank from '@/assets/logo-bankaltimtara.png';
-import { Volume2, VolumeX, Maximize, Minimize, Loader2, WifiOff, Wifi } from 'lucide-react';
+import { Volume2, VolumeX, Maximize, Minimize, Loader2, WifiOff, Wifi, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 const QueueDisplay = () => {
+  const [searchParams] = useSearchParams();
+  const isKioskMode = searchParams.get('kiosk') === 'true';
+  
   const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
   const [tvConfig, setTVConfig] = useState<TVDisplayConfig>(getTVDisplayConfig());
@@ -21,6 +25,7 @@ const QueueDisplay = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [wakeLockActive, setWakeLockActive] = useState(false);
+  const [kioskReady, setKioskReady] = useState(false);
   
   const lastCalledRef = useRef<{ type: string | null; number: number | null; at: string | null }>({
     type: null,
@@ -29,6 +34,7 @@ const QueueDisplay = () => {
   });
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const kioskAttemptRef = useRef(0);
 
   // Request Wake Lock to prevent screen sleep
   const requestWakeLock = useCallback(async () => {
@@ -67,12 +73,53 @@ const QueueDisplay = () => {
     };
   }, [requestWakeLock]);
 
-  // Auto-fullscreen on first user interaction
+  // Kiosk Mode: Auto-fullscreen for desktop/TV without user interaction
+  useEffect(() => {
+    if (!isKioskMode) return;
+    
+    const attemptKioskFullscreen = async () => {
+      kioskAttemptRef.current++;
+      console.log(`[Kiosk] Attempting fullscreen (attempt ${kioskAttemptRef.current})`);
+      
+      if (document.fullscreenElement) {
+        setIsFullscreen(true);
+        setKioskReady(true);
+        console.log('[Kiosk] Already in fullscreen');
+        return;
+      }
+      
+      try {
+        await document.documentElement.requestFullscreen();
+        setIsFullscreen(true);
+        setKioskReady(true);
+        console.log('[Kiosk] Fullscreen activated successfully');
+        toast.success('Mode Kiosk aktif - Fullscreen', { duration: 2000 });
+      } catch (err) {
+        console.log('[Kiosk] Direct fullscreen failed:', err);
+        // For browsers that need user gesture, show a prompt
+        if (kioskAttemptRef.current < 3) {
+          setTimeout(attemptKioskFullscreen, 1000);
+        } else {
+          setKioskReady(true); // Give up, continue anyway
+          toast.info('Klik layar untuk aktivasi fullscreen', { duration: 5000 });
+        }
+      }
+    };
+    
+    // Try immediately, then retry a few times
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(attemptKioskFullscreen, 500);
+    
+    return () => clearTimeout(timer);
+  }, [isKioskMode]);
+
+  // Auto-fullscreen on first user interaction (for non-kiosk mode or fallback)
   useEffect(() => {
     const handleFirstInteraction = () => {
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().then(() => {
           setIsFullscreen(true);
+          if (isKioskMode) setKioskReady(true);
         }).catch((err) => {
           console.log('Auto-fullscreen failed:', err);
         });
@@ -96,7 +143,7 @@ const QueueDisplay = () => {
       document.removeEventListener('touchstart', handleFirstInteraction);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, []);
+  }, [isKioskMode]);
 
   // Network status monitoring and auto-reconnect
   useEffect(() => {
@@ -610,6 +657,15 @@ const QueueDisplay = () => {
             </p>
           </div>
           <div className="flex items-center gap-1">
+            {/* Kiosk mode indicator */}
+            {isKioskMode && (
+              <div 
+                className={`h-6 w-6 sm:h-8 sm:w-8 flex items-center justify-center rounded-full ${kioskReady ? 'text-purple-500' : 'text-purple-300'}`}
+                title={kioskReady ? 'Mode Kiosk Aktif' : 'Mode Kiosk Menunggu'}
+              >
+                <Monitor className="h-3 w-3 sm:h-4 sm:w-4" />
+              </div>
+            )}
             {/* Connection status indicator */}
             <div 
               className={`h-6 w-6 sm:h-8 sm:w-8 flex items-center justify-center rounded-full ${isOnline ? 'text-green-500' : 'text-red-500'}`}
