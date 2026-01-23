@@ -43,6 +43,22 @@ export default defineConfig(({ mode }) => ({
             purpose: "maskable",
           },
         ],
+        shortcuts: [
+          {
+            name: "Display Antrian",
+            short_name: "Display",
+            description: "Tampilan antrian untuk TV/Monitor",
+            url: "/display?kiosk=true",
+            icons: [{ src: "/icon-192x192.png", sizes: "192x192" }],
+          },
+          {
+            name: "Ambil Antrian",
+            short_name: "Antrian",
+            description: "Ambil nomor antrian baru",
+            url: "/",
+            icons: [{ src: "/icon-192x192.png", sizes: "192x192" }],
+          },
+        ],
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,gif,webp,woff,woff2}"],
