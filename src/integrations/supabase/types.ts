@@ -89,6 +89,63 @@ export type Database = {
         }
         Relationships: []
       }
+      tv_display_config: {
+        Row: {
+          created_at: string
+          id: string
+          layout: string
+          media_mode: string
+          media_type: string
+          media_url: string | null
+          running_text: string | null
+          running_text_bg_color: string
+          running_text_color: string
+          running_text_speed: string
+          show_media: boolean
+          show_running_text: boolean
+          slideshow_animation: string
+          slideshow_images: Json | null
+          slideshow_interval: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          layout?: string
+          media_mode?: string
+          media_type?: string
+          media_url?: string | null
+          running_text?: string | null
+          running_text_bg_color?: string
+          running_text_color?: string
+          running_text_speed?: string
+          show_media?: boolean
+          show_running_text?: boolean
+          slideshow_animation?: string
+          slideshow_images?: Json | null
+          slideshow_interval?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          layout?: string
+          media_mode?: string
+          media_type?: string
+          media_url?: string | null
+          running_text?: string | null
+          running_text_bg_color?: string
+          running_text_color?: string
+          running_text_speed?: string
+          show_media?: boolean
+          show_running_text?: boolean
+          slideshow_animation?: string
+          slideshow_images?: Json | null
+          slideshow_interval?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

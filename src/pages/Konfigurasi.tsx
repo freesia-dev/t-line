@@ -19,7 +19,6 @@ import {
   getDisplayConfig,
   saveDisplayConfig,
   getTVDisplayConfig,
-  saveTVDisplayConfig,
   getVoiceConfig,
   saveVoiceConfig,
   PrintConfig,
@@ -28,10 +27,11 @@ import {
   VoiceConfig,
   PronunciationMapping,
 } from '@/lib/queueStore';
+import { fetchTVDisplayConfig, saveTVDisplayConfigToSupabase } from '@/lib/supabaseTVConfig';
 import { fetchQueueState, resetQueue, QueueState } from '@/lib/supabaseQueueStore';
 import { getAllVoices } from '@/lib/audioUtils';
 import { toast } from 'sonner';
-import { RotateCcw, Save, Printer, Monitor, Tv, ExternalLink, Volume2, Bluetooth, Plus, Trash2 } from 'lucide-react';
+import { RotateCcw, Save, Printer, Monitor, Tv, ExternalLink, Volume2, Bluetooth, Plus, Trash2, Loader2 } from 'lucide-react';
 import PrinterSetup from '@/components/PrinterSetup';
 
 const Konfigurasi = () => {
@@ -41,9 +41,16 @@ const Konfigurasi = () => {
   const [voiceConfig, setVoiceConfig] = useState<VoiceConfig>(getVoiceConfig());
   const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [isSavingTVConfig, setIsSavingTVConfig] = useState(false);
 
   useEffect(() => {
     fetchQueueState().then(setQueueState);
+    
+    // Load TV config from Supabase
+    fetchTVDisplayConfig().then((config) => {
+      console.log('[Konfigurasi] TV config loaded:', config);
+      setTVConfig(config);
+    });
     
     // Load available voices
     const loadVoices = () => {
@@ -69,11 +76,16 @@ const Konfigurasi = () => {
     toast.success('Konfigurasi tampilan berhasil disimpan');
   };
 
-  const handleSaveTVConfig = () => {
-    saveTVDisplayConfig(tvConfig);
-    toast.success('Konfigurasi display TV berhasil disimpan');
+  const handleSaveTVConfig = async () => {
+    setIsSavingTVConfig(true);
+    const success = await saveTVDisplayConfigToSupabase(tvConfig);
+    setIsSavingTVConfig(false);
+    if (success) {
+      toast.success('Konfigurasi display TV berhasil disimpan dan akan otomatis diterapkan ke semua display');
+    } else {
+      toast.error('Gagal menyimpan konfigurasi display TV');
+    }
   };
-
   const handleSaveVoiceConfig = () => {
     saveVoiceConfig(voiceConfig);
     toast.success('Konfigurasi suara berhasil disimpan');
