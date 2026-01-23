@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchQueueState, formatQueueNumber, subscribeToQueueState, QueueState, QueueStatus } from '@/lib/supabaseQueueStore';
-import { getPrintConfig, getTVDisplayConfig, PrintConfig, TVDisplayConfig } from '@/lib/queueStore';
+import { getPrintConfig, PrintConfig, TVDisplayConfig } from '@/lib/queueStore';
+import { fetchTVDisplayConfig, subscribeToTVDisplayConfig } from '@/lib/supabaseTVConfig';
 import { announceQueue } from '@/lib/audioUtils';
 import logoBank from '@/assets/logo-bankaltimtara.png';
 import { Volume2, VolumeX, Maximize, Minimize, Loader2, WifiOff, Wifi, Monitor } from 'lucide-react';
@@ -15,7 +16,7 @@ const QueueDisplay = () => {
   
   const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
-  const [tvConfig, setTVConfig] = useState<TVDisplayConfig>(getTVDisplayConfig());
+  const [tvConfig, setTVConfig] = useState<TVDisplayConfig | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [flashCS, setFlashCS] = useState(false);
@@ -183,6 +184,24 @@ const QueueDisplay = () => {
     return () => clearInterval(refreshInterval);
   }, []);
 
+  // Load TV config from Supabase and subscribe to changes
+  useEffect(() => {
+    fetchTVDisplayConfig().then((config) => {
+      console.log('[Display] TV config loaded:', config);
+      setTVConfig(config);
+    });
+
+    const unsubscribeTVConfig = subscribeToTVDisplayConfig((config) => {
+      console.log('[Display] TV config updated via realtime:', config);
+      setTVConfig(config);
+      toast.success('Pengaturan display diperbarui', { duration: 2000 });
+    });
+
+    return () => {
+      unsubscribeTVConfig();
+    };
+  }, []);
+
   useEffect(() => {
     fetchQueueState().then((state) => {
       if (state) {
@@ -230,9 +249,9 @@ const QueueDisplay = () => {
       }
     });
 
+    // Only poll print config locally (it's device-specific)
     const configInterval = setInterval(() => {
       setPrintConfig(getPrintConfig());
-      setTVConfig(getTVDisplayConfig());
     }, 5000);
 
     return () => {
@@ -253,13 +272,13 @@ const QueueDisplay = () => {
 
   // Slideshow effect
   useEffect(() => {
-    if (tvConfig.mediaMode === 'slideshow' && tvConfig.slideshowImages && tvConfig.slideshowImages.length > 1) {
+    if (tvConfig?.mediaMode === 'slideshow' && tvConfig.slideshowImages && tvConfig.slideshowImages.length > 1) {
       const interval = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % tvConfig.slideshowImages.length);
       }, (tvConfig.slideshowInterval || 5) * 1000);
       return () => clearInterval(interval);
     }
-  }, [tvConfig.mediaMode, tvConfig.slideshowImages, tvConfig.slideshowInterval]);
+  }, [tvConfig?.mediaMode, tvConfig?.slideshowImages, tvConfig?.slideshowInterval]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -271,7 +290,7 @@ const QueueDisplay = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !tvConfig) {
     return (
       <div className="h-[100dvh] w-screen bg-white flex items-center justify-center">
         <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
