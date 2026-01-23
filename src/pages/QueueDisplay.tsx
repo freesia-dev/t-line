@@ -347,23 +347,23 @@ const QueueDisplay = () => {
 
     return (
       <motion.div
-        className={`rounded-2xl p-3 sm:p-4 lg:p-6 ${bgClass} shadow-2xl h-full flex flex-col justify-center`}
+        className={`rounded-2xl p-4 sm:p-6 lg:p-8 ${bgClass} shadow-2xl h-full flex flex-col justify-center`}
         animate={flash ? { scale: [1, 1.02, 1] } : {}}
         transition={{ duration: 0.5, repeat: flash ? Infinity : 0 }}
       >
         <div className="text-center">
           <h2 
             className="font-bold text-white drop-shadow-lg"
-            style={{ fontSize: 'clamp(0.875rem, 2vw, 1.5rem)' }}
+            style={{ fontSize: 'clamp(1.25rem, 4vw, 3rem)' }}
           >
             {isTeller ? 'TELLER' : 'CUSTOMER SERVICE'}
           </h2>
           
-          {/* Status Badge - Made MUCH bigger */}
-          <div className="flex justify-center my-2 sm:my-3">
+          {/* Status Badge */}
+          <div className="flex justify-center my-3 sm:my-4">
             <span 
-              className={`px-3 sm:px-6 py-1 sm:py-2 rounded-full text-white font-bold ${statusBadge.bg}`}
-              style={{ fontSize: 'clamp(0.875rem, 2.5vw, 1.5rem)' }}
+              className={`px-4 sm:px-8 py-2 sm:py-3 rounded-full text-white font-bold ${statusBadge.bg}`}
+              style={{ fontSize: 'clamp(1rem, 3vw, 2.5rem)' }}
             >
               {statusBadge.text}
             </span>
@@ -371,35 +371,35 @@ const QueueDisplay = () => {
 
           <div 
             className="font-black text-white leading-none drop-shadow-xl"
-            style={{ fontSize: 'clamp(2.5rem, 12vmin, 10rem)' }}
+            style={{ fontSize: 'clamp(4rem, 18vmin, 16rem)' }}
           >
             {number}
           </div>
-          <div className="mt-2 sm:mt-3 flex justify-center gap-4 sm:gap-6">
+          <div className="mt-4 sm:mt-6 flex justify-center gap-6 sm:gap-10">
             <div className="text-center">
               <p 
-                className="text-white/80"
-                style={{ fontSize: 'clamp(0.5rem, 1vw, 0.75rem)' }}
+                className="text-white/80 font-medium"
+                style={{ fontSize: 'clamp(0.75rem, 2vw, 1.5rem)' }}
               >
                 Menunggu
               </p>
               <p 
                 className="font-bold text-white"
-                style={{ fontSize: 'clamp(1rem, 3vmin, 2rem)' }}
+                style={{ fontSize: 'clamp(1.5rem, 5vmin, 4rem)' }}
               >
                 {waiting}
               </p>
             </div>
             <div className="text-center">
               <p 
-                className="text-white/80"
-                style={{ fontSize: 'clamp(0.5rem, 1vw, 0.75rem)' }}
+                className="text-white/80 font-medium"
+                style={{ fontSize: 'clamp(0.75rem, 2vw, 1.5rem)' }}
               >
                 Total
               </p>
               <p 
                 className="font-bold text-white"
-                style={{ fontSize: 'clamp(1rem, 3vmin, 2rem)' }}
+                style={{ fontSize: 'clamp(1.5rem, 5vmin, 4rem)' }}
               >
                 {total}
               </p>
