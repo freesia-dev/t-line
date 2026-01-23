@@ -602,22 +602,26 @@ const QueueDisplay = () => {
 
   const Layout4 = () => (
     <div className="flex gap-2 sm:gap-4 h-full">
-      <QueueCard 
-        type="TELLER" 
-        number={tellerNumber} 
-        flash={flashTeller}
-        waiting={queueState ? Math.max(0, queueState.teller_queue - queueState.teller_serving) : 0}
-        total={queueState?.teller_queue || 0}
-        status={queueState?.teller_status || 'idle'}
-      />
-      <QueueCard 
-        type="CS" 
-        number={csNumber} 
-        flash={flashCS}
-        waiting={queueState ? Math.max(0, queueState.cs_queue - queueState.cs_serving) : 0}
-        total={queueState?.cs_queue || 0}
-        status={queueState?.cs_status || 'idle'}
-      />
+      <div className="flex-1">
+        <QueueCard 
+          type="TELLER" 
+          number={tellerNumber} 
+          flash={flashTeller}
+          waiting={queueState ? Math.max(0, queueState.teller_queue - queueState.teller_serving) : 0}
+          total={queueState?.teller_queue || 0}
+          status={queueState?.teller_status || 'idle'}
+        />
+      </div>
+      <div className="flex-1">
+        <QueueCard 
+          type="CS" 
+          number={csNumber} 
+          flash={flashCS}
+          waiting={queueState ? Math.max(0, queueState.cs_queue - queueState.cs_serving) : 0}
+          total={queueState?.cs_queue || 0}
+          status={queueState?.cs_status || 'idle'}
+        />
+      </div>
     </div>
   );
 
