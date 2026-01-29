@@ -303,10 +303,14 @@ const announceWithCustomAudio = async (
   }
 };
 
-// Main announcement function with Indonesian pronunciation
+// Main announcement function with Indonesian pronunciation (uses localStorage config)
 export const announceQueue = async (queueNumber: string, destination: string) => {
   const voiceConfig = getVoiceConfig();
-  
+  await announceQueueWithConfig(queueNumber, destination, voiceConfig);
+};
+
+// Main announcement function with explicit config (for real-time sync)
+export const announceQueueWithConfig = async (queueNumber: string, destination: string, voiceConfig: ReturnType<typeof getVoiceConfig>) => {
   // Play ding first
   await playDingSound();
   

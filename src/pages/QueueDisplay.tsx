@@ -2,9 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchQueueState, formatQueueNumber, subscribeToQueueState, QueueState, QueueStatus } from '@/lib/supabaseQueueStore';
-import { getPrintConfig, PrintConfig, TVDisplayConfig } from '@/lib/queueStore';
+import { getPrintConfig, PrintConfig, TVDisplayConfig, VoiceConfig } from '@/lib/queueStore';
 import { fetchTVDisplayConfig, subscribeToTVDisplayConfig } from '@/lib/supabaseTVConfig';
-import { announceQueue } from '@/lib/audioUtils';
+import { fetchVoiceConfig, subscribeToVoiceConfig } from '@/lib/supabaseVoiceConfig';
+import { announceQueueWithConfig } from '@/lib/audioUtils';
 import logoBank from '@/assets/logo-bankaltimtara.png';
 import { Volume2, VolumeX, Maximize, Minimize, Loader2, WifiOff, Wifi, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ const QueueDisplay = () => {
   const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
   const [tvConfig, setTVConfig] = useState<TVDisplayConfig | null>(null);
+  const [voiceConfig, setVoiceConfig] = useState<VoiceConfig | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [flashCS, setFlashCS] = useState(false);
@@ -33,6 +35,7 @@ const QueueDisplay = () => {
     number: null,
     at: null,
   });
+  const voiceConfigRef = useRef<VoiceConfig | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const kioskAttemptRef = useRef(0);
@@ -202,6 +205,26 @@ const QueueDisplay = () => {
     };
   }, []);
 
+  // Load Voice config from Supabase and subscribe to changes
+  useEffect(() => {
+    fetchVoiceConfig().then((config) => {
+      console.log('[Display] Voice config loaded:', config);
+      setVoiceConfig(config);
+      voiceConfigRef.current = config;
+    });
+
+    const unsubscribeVoiceConfig = subscribeToVoiceConfig((config) => {
+      console.log('[Display] Voice config updated via realtime:', config);
+      setVoiceConfig(config);
+      voiceConfigRef.current = config;
+      toast.success('Pengaturan suara diperbarui', { duration: 2000 });
+    });
+
+    return () => {
+      unsubscribeVoiceConfig();
+    };
+  }, []);
+
   useEffect(() => {
     fetchQueueState().then((state) => {
       if (state) {
@@ -224,13 +247,13 @@ const QueueDisplay = () => {
         newState.last_called_type &&
         newState.last_called_number
       ) {
-        if (soundEnabled) {
+        if (soundEnabled && voiceConfigRef.current) {
           const queueNumber = formatQueueNumber(
             newState.last_called_type as 'CS' | 'TELLER',
             newState.last_called_number
           );
           const destination = newState.last_called_type === 'CS' ? 'Customer Service' : 'Teller';
-          announceQueue(queueNumber, destination);
+          announceQueueWithConfig(queueNumber, destination, voiceConfigRef.current);
         }
         
         if (newState.last_called_type === 'CS') {

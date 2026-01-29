@@ -146,6 +146,39 @@ export type Database = {
         }
         Relationships: []
       }
+      voice_config: {
+        Row: {
+          created_at: string
+          custom_audio_phrases: Json
+          id: string
+          pronunciations: Json
+          speed: string
+          updated_at: string
+          use_custom_audio: boolean
+          voice_name: string
+        }
+        Insert: {
+          created_at?: string
+          custom_audio_phrases?: Json
+          id?: string
+          pronunciations?: Json
+          speed?: string
+          updated_at?: string
+          use_custom_audio?: boolean
+          voice_name?: string
+        }
+        Update: {
+          created_at?: string
+          custom_audio_phrases?: Json
+          id?: string
+          pronunciations?: Json
+          speed?: string
+          updated_at?: string
+          use_custom_audio?: boolean
+          voice_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
