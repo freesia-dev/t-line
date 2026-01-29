@@ -612,7 +612,7 @@ const Konfigurasi = () => {
                           <div>
                             <Label>Pengaturan Pelafalan</Label>
                             <p className="text-sm text-muted-foreground">
-                              Ubah cara pelafalan kata tertentu
+                              Ubah cara TTS membaca kata tertentu. Contoh: "Customer Service" → dibaca "Kastamer Servis"
                             </p>
                           </div>
                           <Button
@@ -629,12 +629,19 @@ const Konfigurasi = () => {
                           </Button>
                         </div>
 
+                        {/* Column Headers */}
+                        <div className="grid grid-cols-[1fr_1fr_40px] gap-2 text-sm font-medium text-muted-foreground">
+                          <span>Teks di Sistem</span>
+                          <span>Diucapkan Sebagai</span>
+                          <span></span>
+                        </div>
+
                         <div className="space-y-3">
                           {(voiceConfig.pronunciations || []).map((mapping, index) => (
                             <div key={index} className="flex items-center gap-2">
                               <div className="flex-1 grid grid-cols-2 gap-2">
                                 <Input
-                                  placeholder="Teks asli (Customer Service)"
+                                  placeholder="Contoh: Teller"
                                   value={mapping.original}
                                   onChange={(e) => {
                                     const newPronunciations = [...(voiceConfig.pronunciations || [])];
@@ -643,7 +650,7 @@ const Konfigurasi = () => {
                                   }}
                                 />
                                 <Input
-                                  placeholder="Dibaca sebagai (Kastamer Servis)"
+                                  placeholder="Contoh: Teler"
                                   value={mapping.spoken}
                                   onChange={(e) => {
                                     const newPronunciations = [...(voiceConfig.pronunciations || [])];
@@ -667,9 +674,14 @@ const Konfigurasi = () => {
                           ))}
                           {(!voiceConfig.pronunciations || voiceConfig.pronunciations.length === 0) && (
                             <p className="text-sm text-muted-foreground text-center py-2">
-                              Belum ada pengaturan pelafalan khusus
+                              Belum ada pengaturan pelafalan khusus. TTS akan membaca teks apa adanya.
                             </p>
                           )}
+                        </div>
+
+                        {/* Info box */}
+                        <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 text-sm text-blue-700 dark:text-blue-300">
+                          <strong>Tips:</strong> Jika ingin "Teller" dibaca persis "Teller" (bukan "Teler"), hapus baris Teller di atas dengan klik ikon sampah. Pengaturan ini mengubah pelafalan, bukan teks yang ditampilkan.
                         </div>
                       </div>
 
