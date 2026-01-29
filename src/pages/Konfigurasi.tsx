@@ -107,8 +107,12 @@ const Konfigurasi = () => {
   };
 
   const handleTestVoice = async () => {
-    const { announceQueue } = await import('@/lib/audioUtils');
-    await announceQueue('A001', 'Teller 1');
+    if (!voiceConfig) {
+      toast.error('Konfigurasi suara belum dimuat');
+      return;
+    }
+    const { announceQueueWithConfig } = await import('@/lib/audioUtils');
+    await announceQueueWithConfig('A001', 'Teller 1', voiceConfig);
   };
 
   const handleResetQueue = async () => {
