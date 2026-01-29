@@ -28,6 +28,7 @@ import {
   PronunciationMapping,
 } from '@/lib/queueStore';
 import { fetchTVDisplayConfig, saveTVDisplayConfigToSupabase } from '@/lib/supabaseTVConfig';
+import { fetchVoiceConfig, saveVoiceConfigToSupabase } from '@/lib/supabaseVoiceConfig';
 import { fetchQueueState, resetQueue, QueueState } from '@/lib/supabaseQueueStore';
 import { getAllVoices } from '@/lib/audioUtils';
 import { toast } from 'sonner';
@@ -38,10 +39,11 @@ const Konfigurasi = () => {
   const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
   const [displayConfig, setDisplayConfig] = useState<DisplayConfig>(getDisplayConfig());
   const [tvConfig, setTVConfig] = useState<TVDisplayConfig>(getTVDisplayConfig());
-  const [voiceConfig, setVoiceConfig] = useState<VoiceConfig>(getVoiceConfig());
+  const [voiceConfig, setVoiceConfig] = useState<VoiceConfig | null>(null);
   const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [isSavingTVConfig, setIsSavingTVConfig] = useState(false);
+  const [isSavingVoiceConfig, setIsSavingVoiceConfig] = useState(false);
 
   useEffect(() => {
     fetchQueueState().then(setQueueState);
@@ -50,6 +52,12 @@ const Konfigurasi = () => {
     fetchTVDisplayConfig().then((config) => {
       console.log('[Konfigurasi] TV config loaded:', config);
       setTVConfig(config);
+    });
+    
+    // Load Voice config from Supabase
+    fetchVoiceConfig().then((config) => {
+      console.log('[Konfigurasi] Voice config loaded:', config);
+      setVoiceConfig(config);
     });
     
     // Load available voices
@@ -86,9 +94,16 @@ const Konfigurasi = () => {
       toast.error('Gagal menyimpan konfigurasi display TV');
     }
   };
-  const handleSaveVoiceConfig = () => {
-    saveVoiceConfig(voiceConfig);
-    toast.success('Konfigurasi suara berhasil disimpan');
+  const handleSaveVoiceConfig = async () => {
+    if (!voiceConfig) return;
+    setIsSavingVoiceConfig(true);
+    const success = await saveVoiceConfigToSupabase(voiceConfig);
+    setIsSavingVoiceConfig(false);
+    if (success) {
+      toast.success('Konfigurasi suara berhasil disimpan dan akan otomatis diterapkan ke semua display');
+    } else {
+      toast.error('Gagal menyimpan konfigurasi suara');
+    }
   };
 
   const handleTestVoice = async () => {
@@ -536,178 +551,194 @@ const Konfigurasi = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
-                    <div className="space-y-2">
-                      <Label>Pilih Suara</Label>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Pilih suara dari browser Anda. Suara Indonesia direkomendasikan.
-                      </p>
-                      <Select
-                        value={voiceConfig.voiceName || 'default'}
-                        onValueChange={(value) => {
-                          setVoiceConfig({
-                            ...voiceConfig,
-                            voiceName: value === 'default' ? '' : value,
-                          });
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih suara..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">Otomatis (Indonesia)</SelectItem>
-                          {availableVoices.map((voice) => (
-                            <SelectItem key={voice.name} value={voice.name}>
-                              {voice.name} ({voice.lang})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  {!voiceConfig ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Kecepatan Pelafalan</Label>
-                    <Select
-                      value={voiceConfig.speed}
-                      onValueChange={(value: 'slow' | 'normal' | 'fast') =>
-                        setVoiceConfig({ ...voiceConfig, speed: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="slow">Lambat</SelectItem>
-                        <SelectItem value="normal">Normal</SelectItem>
-                        <SelectItem value="fast">Cepat</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Pronunciation Mapping Section */}
-                  <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Pengaturan Pelafalan</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Ubah cara pelafalan kata tertentu
-                        </p>
+                  ) : (
+                    <>
+                      <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+                        <div className="space-y-2">
+                          <Label>Pilih Suara</Label>
+                          <p className="text-sm text-muted-foreground mb-3">
+                            Pilih suara dari browser Anda. Suara Indonesia direkomendasikan.
+                          </p>
+                          <Select
+                            value={voiceConfig.voiceName || 'default'}
+                            onValueChange={(value) => {
+                              setVoiceConfig({
+                                ...voiceConfig,
+                                voiceName: value === 'default' ? '' : value,
+                              });
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih suara..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="default">Otomatis (Indonesia)</SelectItem>
+                              {availableVoices.map((voice) => (
+                                <SelectItem key={voice.name} value={voice.name}>
+                                  {voice.name} ({voice.lang})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const newPronunciations = [...(voiceConfig.pronunciations || []), { original: '', spoken: '' }];
-                          setVoiceConfig({ ...voiceConfig, pronunciations: newPronunciations });
-                        }}
-                        className="gap-1"
-                      >
-                        <Plus size={16} />
-                        Tambah
-                      </Button>
-                    </div>
 
-                    <div className="space-y-3">
-                      {(voiceConfig.pronunciations || []).map((mapping, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <div className="flex-1 grid grid-cols-2 gap-2">
-                            <Input
-                              placeholder="Teks asli (Customer Service)"
-                              value={mapping.original}
-                              onChange={(e) => {
-                                const newPronunciations = [...(voiceConfig.pronunciations || [])];
-                                newPronunciations[index] = { ...mapping, original: e.target.value };
-                                setVoiceConfig({ ...voiceConfig, pronunciations: newPronunciations });
-                              }}
-                            />
-                            <Input
-                              placeholder="Dibaca sebagai (Kastamer Servis)"
-                              value={mapping.spoken}
-                              onChange={(e) => {
-                                const newPronunciations = [...(voiceConfig.pronunciations || [])];
-                                newPronunciations[index] = { ...mapping, spoken: e.target.value };
-                                setVoiceConfig({ ...voiceConfig, pronunciations: newPronunciations });
-                              }}
-                            />
+                      <div className="space-y-2">
+                        <Label>Kecepatan Pelafalan</Label>
+                        <Select
+                          value={voiceConfig.speed}
+                          onValueChange={(value: 'slow' | 'normal' | 'fast') =>
+                            setVoiceConfig({ ...voiceConfig, speed: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="slow">Lambat</SelectItem>
+                            <SelectItem value="normal">Normal</SelectItem>
+                            <SelectItem value="fast">Cepat</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Pronunciation Mapping Section */}
+                      <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label>Pengaturan Pelafalan</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Ubah cara pelafalan kata tertentu
+                            </p>
                           </div>
                           <Button
-                            variant="ghost"
-                            size="icon"
+                            variant="outline"
+                            size="sm"
                             onClick={() => {
-                              const newPronunciations = (voiceConfig.pronunciations || []).filter((_, i) => i !== index);
+                              const newPronunciations = [...(voiceConfig.pronunciations || []), { original: '', spoken: '' }];
                               setVoiceConfig({ ...voiceConfig, pronunciations: newPronunciations });
                             }}
-                            className="text-destructive hover:text-destructive"
+                            className="gap-1"
                           >
-                            <Trash2 size={16} />
+                            <Plus size={16} />
+                            Tambah
                           </Button>
                         </div>
-                      ))}
-                      {(!voiceConfig.pronunciations || voiceConfig.pronunciations.length === 0) && (
-                        <p className="text-sm text-muted-foreground text-center py-2">
-                          Belum ada pengaturan pelafalan khusus
-                        </p>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Custom Audio Section */}
-                  <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="useCustomAudio">Gunakan Audio Rekaman</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Gunakan rekaman suara untuk kata-kata tertentu, TTS hanya untuk nomor antrian
+                        <div className="space-y-3">
+                          {(voiceConfig.pronunciations || []).map((mapping, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <div className="flex-1 grid grid-cols-2 gap-2">
+                                <Input
+                                  placeholder="Teks asli (Customer Service)"
+                                  value={mapping.original}
+                                  onChange={(e) => {
+                                    const newPronunciations = [...(voiceConfig.pronunciations || [])];
+                                    newPronunciations[index] = { ...mapping, original: e.target.value };
+                                    setVoiceConfig({ ...voiceConfig, pronunciations: newPronunciations });
+                                  }}
+                                />
+                                <Input
+                                  placeholder="Dibaca sebagai (Kastamer Servis)"
+                                  value={mapping.spoken}
+                                  onChange={(e) => {
+                                    const newPronunciations = [...(voiceConfig.pronunciations || [])];
+                                    newPronunciations[index] = { ...mapping, spoken: e.target.value };
+                                    setVoiceConfig({ ...voiceConfig, pronunciations: newPronunciations });
+                                  }}
+                                />
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  const newPronunciations = (voiceConfig.pronunciations || []).filter((_, i) => i !== index);
+                                  setVoiceConfig({ ...voiceConfig, pronunciations: newPronunciations });
+                                }}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </div>
+                          ))}
+                          {(!voiceConfig.pronunciations || voiceConfig.pronunciations.length === 0) && (
+                            <p className="text-sm text-muted-foreground text-center py-2">
+                              Belum ada pengaturan pelafalan khusus
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Custom Audio Section */}
+                      <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label htmlFor="useCustomAudio">Gunakan Audio Rekaman</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Gunakan rekaman suara untuk kata-kata tertentu, TTS hanya untuk nomor antrian
+                            </p>
+                          </div>
+                          <Switch
+                            id="useCustomAudio"
+                            checked={voiceConfig.useCustomAudio}
+                            onCheckedChange={(checked) =>
+                              setVoiceConfig({ ...voiceConfig, useCustomAudio: checked })
+                            }
+                          />
+                        </div>
+
+                        {voiceConfig.useCustomAudio && (
+                          <AudioPhraseUploader
+                            phrases={voiceConfig.customAudioPhrases || []}
+                            onUpdate={(phrases) =>
+                              setVoiceConfig({ ...voiceConfig, customAudioPhrases: phrases })
+                            }
+                          />
+                        )}
+                      </div>
+
+                      <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                        <p className="text-sm text-foreground">
+                          <strong>Contoh pelafalan:</strong><br />
+                          A001 → "A nol nol satu"<br />
+                          B123 → "B seratus dua puluh tiga"<br />
+                          {voiceConfig.useCustomAudio ? (
+                            <>Format: [Rekaman "Nomor Antrian"] + [TTS A001] + [Rekaman "Silakan Menuju ke"] + [Rekaman "Teller/CS"]</>
+                          ) : (
+                            <>Customer Service → "Kastamer Servis" (jika diatur)</>
+                          )}
                         </p>
                       </div>
-                      <Switch
-                        id="useCustomAudio"
-                        checked={voiceConfig.useCustomAudio}
-                        onCheckedChange={(checked) =>
-                          setVoiceConfig({ ...voiceConfig, useCustomAudio: checked })
-                        }
-                      />
-                    </div>
 
-                    {voiceConfig.useCustomAudio && (
-                      <AudioPhraseUploader
-                        phrases={voiceConfig.customAudioPhrases || []}
-                        onUpdate={(phrases) =>
-                          setVoiceConfig({ ...voiceConfig, customAudioPhrases: phrases })
-                        }
-                      />
-                    )}
-                  </div>
+                      <div className="pt-2">
+                        <Button
+                          variant="outline"
+                          onClick={handleTestVoice}
+                          className="w-full gap-2"
+                        >
+                          <Volume2 size={18} />
+                          Test Suara
+                        </Button>
+                      </div>
 
-                  <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                    <p className="text-sm text-foreground">
-                      <strong>Contoh pelafalan:</strong><br />
-                      A001 → "A nol nol satu"<br />
-                      B123 → "B seratus dua puluh tiga"<br />
-                      {voiceConfig.useCustomAudio ? (
-                        <>Format: [Rekaman "Nomor Antrian"] + [TTS A001] + [Rekaman "Silakan Menuju ke"] + [Rekaman "Teller/CS"]</>
-                      ) : (
-                        <>Customer Service → "Kastamer Servis" (jika diatur)</>
-                      )}
-                    </p>
-                  </div>
-
-                  <div className="pt-2">
-                    <Button
-                      variant="outline"
-                      onClick={handleTestVoice}
-                      className="w-full gap-2"
-                    >
-                      <Volume2 size={18} />
-                      Test Suara
-                    </Button>
-                  </div>
-
-                  <Button onClick={handleSaveVoiceConfig} className="w-full gap-2">
-                    <Save size={18} />
-                    Simpan Pengaturan Suara
-                  </Button>
+                      <Button 
+                        onClick={handleSaveVoiceConfig} 
+                        className="w-full gap-2"
+                        disabled={isSavingVoiceConfig}
+                      >
+                        {isSavingVoiceConfig ? (
+                          <Loader2 size={18} className="animate-spin" />
+                        ) : (
+                          <Save size={18} />
+                        )}
+                        Simpan Pengaturan Suara
+                      </Button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
