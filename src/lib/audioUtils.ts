@@ -311,25 +311,37 @@ export const announceQueue = async (queueNumber: string, destination: string) =>
 
 // Main announcement function with explicit config (for real-time sync)
 export const announceQueueWithConfig = async (queueNumber: string, destination: string, voiceConfig: ReturnType<typeof getVoiceConfig>) => {
-  // Play ding first
-  await playDingSound();
+  console.log('[Audio] Starting announcement for:', queueNumber, 'to', destination);
+  console.log('[Audio] Voice config:', JSON.stringify(voiceConfig, null, 2));
   
-  // Small delay after ding
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  // Check if custom audio is enabled and has any audio uploaded
-  const hasCustomAudio = voiceConfig.useCustomAudio && 
-    voiceConfig.customAudioPhrases?.some(p => p.audioUrl);
-  
-  if (hasCustomAudio) {
-    // Use custom audio announcement
-    await announceWithCustomAudio(queueNumber, destination, voiceConfig);
-  } else {
-    // Use full TTS announcement
-    const spokenQueueNumber = formatQueueForSpeech(queueNumber);
-    const spokenDestination = applyPronunciationMappings(destination, voiceConfig.pronunciations || []);
-    const announcementText = `Nomor antrian ${spokenQueueNumber}, silakan menuju ke ${spokenDestination}`;
-    const browserSpeed = getBrowserTTSSpeed(voiceConfig.speed);
-    await playBrowserTTS(announcementText, browserSpeed, voiceConfig.voiceName);
+  try {
+    // Play ding first
+    await playDingSound();
+    console.log('[Audio] Ding sound played');
+    
+    // Small delay after ding
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Check if custom audio is enabled and has any audio uploaded
+    const hasCustomAudio = voiceConfig.useCustomAudio && 
+      voiceConfig.customAudioPhrases?.some(p => p.audioUrl);
+    
+    if (hasCustomAudio) {
+      console.log('[Audio] Using custom audio announcement');
+      // Use custom audio announcement
+      await announceWithCustomAudio(queueNumber, destination, voiceConfig);
+    } else {
+      // Use full TTS announcement
+      const spokenQueueNumber = formatQueueForSpeech(queueNumber);
+      const spokenDestination = applyPronunciationMappings(destination, voiceConfig.pronunciations || []);
+      const announcementText = `Nomor antrian ${spokenQueueNumber}, silakan menuju ke ${spokenDestination}`;
+      const browserSpeed = getBrowserTTSSpeed(voiceConfig.speed);
+      console.log('[Audio] TTS text:', announcementText, 'speed:', browserSpeed);
+      await playBrowserTTS(announcementText, browserSpeed, voiceConfig.voiceName);
+    }
+    
+    console.log('[Audio] Announcement completed successfully');
+  } catch (error) {
+    console.error('[Audio] Error during announcement:', error);
   }
 };
