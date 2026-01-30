@@ -323,7 +323,13 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
 
       const cleanup = () => {
         iframe.remove();
-        onPrinted?.();
+        // If directPrint is enabled, close immediately without showing dialog
+        if (displayConfig.directPrint) {
+          onPrinted?.();
+        } else {
+          setShowDialog(false);
+          onPrinted?.();
+        }
       };
 
       const fallback = window.setTimeout(() => {
@@ -367,7 +373,7 @@ const PrintTicket = ({ type, number, remaining, config, onPrinted }: PrintTicket
     }, 50);
 
     return () => window.clearTimeout(t);
-  }, [config, onPrinted, isEscPosMode]);
+  }, [config, onPrinted, isEscPosMode, displayConfig.directPrint]);
 
   // ESC/POS mode: show print dialog with 1-tap button (unless direct print)
   if (isEscPosMode) {
