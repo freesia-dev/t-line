@@ -54,7 +54,7 @@ export const fetchVoiceConfig = async (): Promise<VoiceConfig> => {
     .maybeSingle();
 
   if (error) {
-    console.error('Error fetching voice config:', error);
+    console.error('[VoiceConfig] Error fetching:', error);
     return DEFAULT_VOICE_CONFIG;
   }
 
@@ -72,14 +72,18 @@ export const fetchVoiceConfig = async (): Promise<VoiceConfig> => {
       .single();
 
     if (insertError) {
-      console.error('Error inserting default voice config:', insertError);
+      console.error('[VoiceConfig] Error inserting default:', insertError);
       return DEFAULT_VOICE_CONFIG;
     }
 
-    return rowToConfig(inserted as VoiceConfigRow);
+    const config = rowToConfig(inserted as VoiceConfigRow);
+    console.log('[VoiceConfig] Inserted and fetched default:', JSON.stringify(config, null, 2));
+    return config;
   }
 
-  return rowToConfig(data as VoiceConfigRow);
+  const config = rowToConfig(data as VoiceConfigRow);
+  console.log('[VoiceConfig] Fetched from DB:', JSON.stringify(config, null, 2));
+  return config;
 };
 
 export const saveVoiceConfigToSupabase = async (config: VoiceConfig): Promise<boolean> => {
@@ -110,13 +114,17 @@ export const subscribeToVoiceConfig = (
         filter: 'id=eq.default',
       },
       (payload) => {
-        console.log('Voice config changed:', payload);
+        console.log('[VoiceConfig] Realtime payload received:', payload);
         if (payload.new) {
-          callback(rowToConfig(payload.new as VoiceConfigRow));
+          const newConfig = rowToConfig(payload.new as VoiceConfigRow);
+          console.log('[VoiceConfig] Parsed config:', JSON.stringify(newConfig, null, 2));
+          callback(newConfig);
         }
       }
     )
-    .subscribe();
+    .subscribe((status) => {
+      console.log('[VoiceConfig] Subscription status:', status);
+    });
 
   return () => {
     supabase.removeChannel(channel);
