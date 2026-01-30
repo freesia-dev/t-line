@@ -97,9 +97,11 @@ const Konfigurasi = () => {
   const handleSaveVoiceConfig = async () => {
     if (!voiceConfig) return;
     setIsSavingVoiceConfig(true);
+    console.log('[Konfigurasi] Saving voice config:', JSON.stringify(voiceConfig, null, 2));
     const success = await saveVoiceConfigToSupabase(voiceConfig);
     setIsSavingVoiceConfig(false);
     if (success) {
+      console.log('[Konfigurasi] Voice config saved successfully');
       toast.success('Konfigurasi suara berhasil disimpan dan akan otomatis diterapkan ke semua display');
     } else {
       toast.error('Gagal menyimpan konfigurasi suara');
