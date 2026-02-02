@@ -1,11 +1,76 @@
 // Audio utilities for queue system with Indonesian TTS
+// OPTIMIZED: Pre-load voices and reduce delays for faster announcements
 
 import { getVoiceConfig, CustomAudioPhrase } from './queueStore';
 
-// Play a custom audio file and return a promise
+// Cache for pre-loaded audio and voices
+let voicesLoaded = false;
+let cachedVoices: SpeechSynthesisVoice[] = [];
+let dingSoundBuffer: AudioBuffer | null = null;
+let audioContext: AudioContext | null = null;
+
+// Pre-load voices immediately when module loads
+const preloadVoices = () => {
+  if ('speechSynthesis' in window) {
+    const loadVoices = () => {
+      cachedVoices = window.speechSynthesis.getVoices();
+      if (cachedVoices.length > 0) {
+        voicesLoaded = true;
+        console.log('[Audio] Voices pre-loaded:', cachedVoices.length);
+      }
+    };
+    
+    // Try immediately
+    loadVoices();
+    
+    // Also listen for voiceschanged event (Chrome needs this)
+    if (!voicesLoaded) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }
+};
+
+// Initialize audio context and pre-generate ding sound buffer
+const initAudioContext = async () => {
+  if (audioContext) return audioContext;
+  
+  try {
+    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    // Pre-generate ding sound buffer for instant playback
+    const sampleRate = audioContext.sampleRate;
+    const duration = 0.8;
+    const buffer = audioContext.createBuffer(1, sampleRate * duration, sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    // Generate bell-like tone
+    for (let i = 0; i < data.length; i++) {
+      const t = i / sampleRate;
+      const envelope = Math.exp(-t * 5);
+      data[i] = Math.sin(2 * Math.PI * 830 * t) * envelope * 0.5;
+    }
+    
+    dingSoundBuffer = buffer;
+    console.log('[Audio] Audio context and ding buffer initialized');
+    
+    return audioContext;
+  } catch (error) {
+    console.error('[Audio] Failed to init audio context:', error);
+    return null;
+  }
+};
+
+// Initialize on module load
+if (typeof window !== 'undefined') {
+  preloadVoices();
+  // Defer audio context init until first interaction (browser policy)
+}
+
+// Play a custom audio file and return a promise - OPTIMIZED
 const playCustomAudio = (url: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     const audio = new Audio(url);
+    audio.preload = 'auto';
     audio.onended = () => resolve();
     audio.onerror = () => reject(new Error('Failed to play audio'));
     audio.play().catch(reject);
@@ -48,38 +113,25 @@ const twoDigitToIndonesian = (num: number): string => {
 };
 
 // Convert queue number to spoken Indonesian with proper number grouping
-// A001 → A nol nol satu
-// A011 → A nol sebelas
-// A111 → A seratus sebelas
-// A023 → A nol dua puluh tiga
 const formatQueueForSpeech = (queueNumber: string): string => {
   const letter = queueNumber.charAt(0);
   const numbers = queueNumber.slice(1);
   
-  // Remove leading zeros to get actual number
   const numValue = parseInt(numbers, 10);
-  
-  // Get first digit (hundreds place)
   const firstDigit = parseInt(numbers.charAt(0), 10);
-  // Get last two digits
   const lastTwo = parseInt(numbers.slice(1), 10);
   
   let spokenNumbers = '';
   
   if (numValue === 0) {
-    // 000 case
     spokenNumbers = 'nol nol nol';
   } else if (firstDigit === 0) {
-    // 0XX case - first digit is zero
     if (lastTwo < 10) {
-      // 00X case - nol nol X
       spokenNumbers = 'nol nol ' + digitToIndonesian(String(lastTwo));
     } else {
-      // 0XY case - nol + two digit pronunciation
       spokenNumbers = 'nol ' + twoDigitToIndonesian(lastTwo);
     }
   } else {
-    // XXX case - three digits, use proper Indonesian number
     if (numValue < 10) {
       spokenNumbers = 'nol nol ' + digitToIndonesian(String(numValue));
     } else if (numValue < 100) {
@@ -102,51 +154,82 @@ const formatQueueForSpeech = (queueNumber: string): string => {
   return `${letter} ${spokenNumbers}`;
 };
 
-export const playDingSound = (): Promise<void> => {
+// OPTIMIZED ding sound - uses pre-generated buffer for instant playback
+export const playDingSound = async (): Promise<void> => {
+  try {
+    const ctx = await initAudioContext();
+    if (!ctx || !dingSoundBuffer) {
+      // Fallback to simple beep
+      return playSimpleDing();
+    }
+    
+    // Resume context if suspended
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
+    
+    // Play first ding
+    const source1 = ctx.createBufferSource();
+    const gain1 = ctx.createGain();
+    source1.buffer = dingSoundBuffer;
+    source1.connect(gain1);
+    gain1.connect(ctx.destination);
+    gain1.gain.value = 0.5;
+    source1.start(0);
+    
+    // Play second ding after short delay (for emphasis)
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const source2 = ctx.createBufferSource();
+        const gain2 = ctx.createGain();
+        
+        // Create higher pitched buffer for second ding
+        const sampleRate = ctx.sampleRate;
+        const duration = 0.6;
+        const buffer2 = ctx.createBuffer(1, sampleRate * duration, sampleRate);
+        const data2 = buffer2.getChannelData(0);
+        
+        for (let i = 0; i < data2.length; i++) {
+          const t = i / sampleRate;
+          const envelope = Math.exp(-t * 6);
+          data2[i] = Math.sin(2 * Math.PI * 1046 * t) * envelope * 0.4;
+        }
+        
+        source2.buffer = buffer2;
+        source2.connect(gain2);
+        gain2.connect(ctx.destination);
+        source2.start(0);
+        
+        setTimeout(resolve, 400); // Reduced from 600ms
+      }, 120); // Reduced from 150ms
+    });
+  } catch (error) {
+    console.error('[Audio] Failed to play optimized ding:', error);
+    return playSimpleDing();
+  }
+};
+
+// Fallback simple ding using oscillator
+const playSimpleDing = (): Promise<void> => {
   return new Promise((resolve) => {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
       
-      // Create oscillator for the "ding" sound
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
       
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+      osc.frequency.setValueAtTime(830, ctx.currentTime);
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.5, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
       
-      // Bell-like frequency
-      oscillator.frequency.setValueAtTime(830, audioContext.currentTime);
-      oscillator.type = 'sine';
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.5);
       
-      // Envelope for bell-like decay
-      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.8);
-      
-      // Second ding for emphasis
-      setTimeout(() => {
-        const osc2 = audioContext.createOscillator();
-        const gain2 = audioContext.createGain();
-        
-        osc2.connect(gain2);
-        gain2.connect(audioContext.destination);
-        
-        osc2.frequency.setValueAtTime(1046, audioContext.currentTime);
-        osc2.type = 'sine';
-        
-        gain2.gain.setValueAtTime(0.4, audioContext.currentTime);
-        gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
-        
-        osc2.start(audioContext.currentTime);
-        osc2.stop(audioContext.currentTime + 0.6);
-        
-        setTimeout(resolve, 600);
-      }, 150);
-      
-    } catch (error) {
-      console.error('Failed to play ding sound:', error);
+      setTimeout(resolve, 400);
+    } catch {
       resolve();
     }
   });
@@ -162,11 +245,12 @@ const getBrowserTTSSpeed = (speed: 'slow' | 'normal' | 'fast'): number => {
   }
 };
 
-// Get available Indonesian voices
+// Get available Indonesian voices - uses cached voices
 export const getIndonesianVoices = (): SpeechSynthesisVoice[] => {
   if (!('speechSynthesis' in window)) return [];
   
-  const voices = window.speechSynthesis.getVoices();
+  // Use cached voices if available
+  const voices = voicesLoaded ? cachedVoices : window.speechSynthesis.getVoices();
   return voices.filter(voice => 
     voice.lang.startsWith('id') || 
     voice.lang.startsWith('ID') ||
@@ -174,49 +258,67 @@ export const getIndonesianVoices = (): SpeechSynthesisVoice[] => {
   );
 };
 
-// Get all available voices for selection
+// Get all available voices for selection - uses cached voices
 export const getAllVoices = (): SpeechSynthesisVoice[] => {
   if (!('speechSynthesis' in window)) return [];
-  return window.speechSynthesis.getVoices();
+  return voicesLoaded ? cachedVoices : window.speechSynthesis.getVoices();
 };
 
-// Browser TTS with voice selection
+// OPTIMIZED Browser TTS - reduced overhead
 const playBrowserTTS = (text: string, speed: number, voiceName?: string): Promise<void> => {
   return new Promise((resolve) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      
-      const utterance = new SpeechSynthesisUtterance(text);
-      
-      // Try to find the selected voice
-      const voices = window.speechSynthesis.getVoices();
-      if (voiceName) {
-        const selectedVoice = voices.find(v => v.name === voiceName);
-        if (selectedVoice) {
-          utterance.voice = selectedVoice;
-        }
-      }
-      
-      // Fallback to Indonesian voice if no voice selected
-      if (!utterance.voice) {
-        const indonesianVoice = voices.find(v => v.lang.startsWith('id'));
-        if (indonesianVoice) {
-          utterance.voice = indonesianVoice;
-        }
-      }
-      
-      utterance.lang = 'id-ID';
-      utterance.rate = speed;
-      utterance.pitch = 1;
-      utterance.volume = 1;
-      
-      utterance.onend = () => resolve();
-      utterance.onerror = () => resolve();
-      
-      window.speechSynthesis.speak(utterance);
-    } else {
+    if (!('speechSynthesis' in window)) {
       resolve();
+      return;
     }
+    
+    // Cancel any ongoing speech immediately
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Use cached voices for faster lookup
+    const voices = voicesLoaded ? cachedVoices : window.speechSynthesis.getVoices();
+    
+    if (voiceName) {
+      const selectedVoice = voices.find(v => v.name === voiceName);
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+    }
+    
+    // Fallback to Indonesian voice if no voice selected
+    if (!utterance.voice) {
+      const indonesianVoice = voices.find(v => v.lang.startsWith('id'));
+      if (indonesianVoice) {
+        utterance.voice = indonesianVoice;
+      }
+    }
+    
+    utterance.lang = 'id-ID';
+    utterance.rate = speed;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    
+    // Set timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      console.warn('[Audio] TTS timeout, resolving');
+      window.speechSynthesis.cancel();
+      resolve();
+    }, 10000);
+    
+    utterance.onend = () => {
+      clearTimeout(timeout);
+      resolve();
+    };
+    
+    utterance.onerror = (e) => {
+      clearTimeout(timeout);
+      console.error('[Audio] TTS error:', e);
+      resolve();
+    };
+    
+    window.speechSynthesis.speak(utterance);
   });
 };
 
@@ -225,7 +327,6 @@ const applyPronunciationMappings = (text: string, pronunciations: Array<{ origin
   let result = text;
   for (const mapping of pronunciations) {
     if (mapping.original && mapping.spoken) {
-      // Case-insensitive replacement
       const regex = new RegExp(mapping.original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
       result = result.replace(regex, mapping.spoken);
     }
@@ -239,7 +340,7 @@ const getCustomAudioUrl = (phrases: CustomAudioPhrase[], phraseKey: string): str
   return phrase?.audioUrl || null;
 };
 
-// Announcement with custom audio: plays custom recordings for phrases, TTS only for queue number
+// OPTIMIZED: Announcement with custom audio - reduced delays
 const announceWithCustomAudio = async (
   queueNumber: string,
   destination: string,
@@ -248,16 +349,13 @@ const announceWithCustomAudio = async (
   const { customAudioPhrases, speed, voiceName } = voiceConfig;
   const browserSpeed = getBrowserTTSSpeed(speed);
   
-  // Determine which destination audio to use
   const isTeller = destination.toLowerCase().includes('teller');
   const destinationPhraseKey = isTeller ? 'teller' : 'customer_service';
   
-  // Get custom audio URLs
   const nomorAntrianAudio = getCustomAudioUrl(customAudioPhrases, 'nomor_antrian');
   const silakanMenujuAudio = getCustomAudioUrl(customAudioPhrases, 'silakan_menuju');
   const destinationAudio = getCustomAudioUrl(customAudioPhrases, destinationPhraseKey);
   
-  // Format queue number for TTS
   const spokenQueueNumber = formatQueueForSpeech(queueNumber);
   
   try {
@@ -268,14 +366,14 @@ const announceWithCustomAudio = async (
       await playBrowserTTS('Nomor antrian', browserSpeed, voiceName);
     }
     
-    // Small pause
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // REDUCED pause (was 200ms)
+    await new Promise(resolve => setTimeout(resolve, 100));
     
-    // Play queue number via TTS (always TTS - e.g., "A nol nol satu")
+    // Play queue number via TTS
     await playBrowserTTS(spokenQueueNumber, browserSpeed, voiceName);
     
-    // Small pause
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // REDUCED pause (was 200ms)
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Play "Silakan Menuju ke" (custom or TTS)
     if (silakanMenujuAudio) {
@@ -284,8 +382,8 @@ const announceWithCustomAudio = async (
       await playBrowserTTS('silakan menuju ke', browserSpeed, voiceName);
     }
     
-    // Small pause
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // REDUCED pause (was 200ms)
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Play destination (custom or TTS)
     if (destinationAudio) {
@@ -295,7 +393,7 @@ const announceWithCustomAudio = async (
       await playBrowserTTS(spokenDestination, browserSpeed, voiceName);
     }
   } catch (error) {
-    console.error('Error playing custom audio announcement:', error);
+    console.error('[Audio] Error playing custom audio announcement:', error);
     // Fallback to full TTS
     const spokenDestination = applyPronunciationMappings(destination, voiceConfig.pronunciations || []);
     const fallbackText = `Nomor antrian ${spokenQueueNumber}, silakan menuju ke ${spokenDestination}`;
@@ -309,26 +407,27 @@ export const announceQueue = async (queueNumber: string, destination: string) =>
   await announceQueueWithConfig(queueNumber, destination, voiceConfig);
 };
 
-// Main announcement function with explicit config (for real-time sync)
+// OPTIMIZED: Main announcement function with explicit config
 export const announceQueueWithConfig = async (queueNumber: string, destination: string, voiceConfig: ReturnType<typeof getVoiceConfig>) => {
   console.log('[Audio] Starting announcement for:', queueNumber, 'to', destination);
-  console.log('[Audio] Voice config:', JSON.stringify(voiceConfig, null, 2));
   
   try {
+    // Ensure audio context is ready
+    await initAudioContext();
+    
     // Play ding first
     await playDingSound();
-    console.log('[Audio] Ding sound played');
+    console.log('[Audio] Ding completed');
     
-    // Small delay after ding
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // REDUCED delay after ding (was 300ms)
+    await new Promise(resolve => setTimeout(resolve, 150));
     
-    // Check if custom audio is enabled and has any audio uploaded
+    // Check if custom audio is enabled
     const hasCustomAudio = voiceConfig.useCustomAudio && 
       voiceConfig.customAudioPhrases?.some(p => p.audioUrl);
     
     if (hasCustomAudio) {
       console.log('[Audio] Using custom audio announcement');
-      // Use custom audio announcement
       await announceWithCustomAudio(queueNumber, destination, voiceConfig);
     } else {
       // Use full TTS announcement
@@ -336,12 +435,18 @@ export const announceQueueWithConfig = async (queueNumber: string, destination: 
       const spokenDestination = applyPronunciationMappings(destination, voiceConfig.pronunciations || []);
       const announcementText = `Nomor antrian ${spokenQueueNumber}, silakan menuju ke ${spokenDestination}`;
       const browserSpeed = getBrowserTTSSpeed(voiceConfig.speed);
-      console.log('[Audio] TTS text:', announcementText, 'speed:', browserSpeed);
+      console.log('[Audio] TTS text:', announcementText);
       await playBrowserTTS(announcementText, browserSpeed, voiceConfig.voiceName);
     }
     
-    console.log('[Audio] Announcement completed successfully');
+    console.log('[Audio] Announcement completed');
   } catch (error) {
     console.error('[Audio] Error during announcement:', error);
   }
+};
+
+// Force reload voices (useful for testing)
+export const reloadVoices = () => {
+  voicesLoaded = false;
+  preloadVoices();
 };
