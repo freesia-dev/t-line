@@ -5,7 +5,7 @@ import { fetchQueueState, formatQueueNumber, subscribeToQueueState, QueueState, 
 import { getPrintConfig, PrintConfig, TVDisplayConfig, VoiceConfig } from '@/lib/queueStore';
 import { fetchTVDisplayConfig, subscribeToTVDisplayConfig } from '@/lib/supabaseTVConfig';
 import { fetchVoiceConfig, subscribeToVoiceConfig } from '@/lib/supabaseVoiceConfig';
-import { announceQueueWithConfig } from '@/lib/audioUtils';
+import { announceQueueWithConfig, reloadVoices } from '@/lib/audioUtils';
 import logoBank from '@/assets/logo-bankaltimtara.png';
 import { Volume2, VolumeX, Maximize, Minimize, Loader2, WifiOff, Wifi, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -206,7 +206,12 @@ const QueueDisplay = () => {
   }, []);
 
   // Load Voice config from Supabase and subscribe to changes
+  // Also pre-load TTS voices for faster announcements
   useEffect(() => {
+    // Pre-load voices on mount
+    reloadVoices();
+    console.log('[Display] Voice pre-loading initiated');
+    
     fetchVoiceConfig().then((config) => {
       console.log('[Display] Voice config loaded:', config);
       setVoiceConfig(config);
