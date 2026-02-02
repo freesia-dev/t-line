@@ -29,6 +29,7 @@ const QueueDisplay = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const [kioskReady, setKioskReady] = useState(false);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
   
   const lastCalledRef = useRef<{ type: string | null; number: number | null; at: string | null }>({
     type: null,
@@ -39,6 +40,7 @@ const QueueDisplay = () => {
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const kioskAttemptRef = useRef(0);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   // Request Wake Lock to prevent screen sleep
   const requestWakeLock = useCallback(async () => {
@@ -117,9 +119,56 @@ const QueueDisplay = () => {
     return () => clearTimeout(timer);
   }, [isKioskMode]);
 
-  // Auto-fullscreen on first user interaction (for non-kiosk mode or fallback)
+  // CRITICAL: Unlock audio on first user interaction (especially for kiosk mode)
+  // Browsers block audio until user gesture - this is essential for kiosk displays
+  const unlockAudio = useCallback(async () => {
+    if (audioUnlocked) return;
+    
+    console.log('[Display] Attempting to unlock audio...');
+    
+    try {
+      // Create or resume AudioContext
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+        console.log('[Display] AudioContext resumed successfully');
+      }
+      
+      // Play silent audio to fully unlock
+      const buffer = audioContextRef.current.createBuffer(1, 1, 22050);
+      const source = audioContextRef.current.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioContextRef.current.destination);
+      source.start(0);
+      
+      // Also unlock Web Speech API
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance('');
+        utterance.volume = 0;
+        window.speechSynthesis.speak(utterance);
+        window.speechSynthesis.cancel();
+      }
+      
+      setAudioUnlocked(true);
+      console.log('[Display] Audio unlocked successfully!');
+      toast.success('Audio aktif', { duration: 2000 });
+    } catch (error) {
+      console.error('[Display] Failed to unlock audio:', error);
+    }
+  }, [audioUnlocked]);
+
+  // Auto-fullscreen and audio unlock on first user interaction
   useEffect(() => {
-    const handleFirstInteraction = () => {
+    const handleFirstInteraction = async () => {
+      console.log('[Display] First interaction detected');
+      
+      // Unlock audio first
+      await unlockAudio();
+      
+      // Then try fullscreen
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().then(() => {
           setIsFullscreen(true);
@@ -128,13 +177,16 @@ const QueueDisplay = () => {
           console.log('Auto-fullscreen failed:', err);
         });
       }
-      // Remove listener after first interaction
+      
+      // Remove listeners after first interaction
       document.removeEventListener('click', handleFirstInteraction);
       document.removeEventListener('touchstart', handleFirstInteraction);
+      document.removeEventListener('keydown', handleFirstInteraction);
     };
 
     document.addEventListener('click', handleFirstInteraction);
     document.addEventListener('touchstart', handleFirstInteraction);
+    document.addEventListener('keydown', handleFirstInteraction);
 
     // Also listen for fullscreen changes
     const handleFullscreenChange = () => {
@@ -145,9 +197,10 @@ const QueueDisplay = () => {
     return () => {
       document.removeEventListener('click', handleFirstInteraction);
       document.removeEventListener('touchstart', handleFirstInteraction);
+      document.removeEventListener('keydown', handleFirstInteraction);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, [isKioskMode]);
+  }, [isKioskMode, unlockAudio]);
 
   // Network status monitoring and auto-reconnect
   useEffect(() => {
@@ -345,6 +398,27 @@ const QueueDisplay = () => {
     return (
       <div className="h-[100dvh] w-screen bg-white flex items-center justify-center">
         <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
+
+  // Show audio unlock prompt for kiosk mode if audio not yet unlocked
+  if (isKioskMode && !audioUnlocked) {
+    return (
+      <div 
+        className="h-[100dvh] w-screen bg-gradient-to-br from-blue-600 to-blue-800 flex flex-col items-center justify-center cursor-pointer"
+        onClick={unlockAudio}
+        onTouchStart={unlockAudio}
+      >
+        <motion.div
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="text-center text-white"
+        >
+          <Volume2 className="h-24 w-24 mx-auto mb-6" />
+          <h1 className="text-4xl font-bold mb-4">Aktifkan Audio</h1>
+          <p className="text-xl opacity-80">Sentuh layar untuk mengaktifkan suara</p>
+        </motion.div>
       </div>
     );
   }
