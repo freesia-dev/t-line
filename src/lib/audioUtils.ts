@@ -156,15 +156,19 @@ const formatQueueForSpeech = (queueNumber: string): string => {
 
 // OPTIMIZED ding sound - uses pre-generated buffer for instant playback
 export const playDingSound = async (): Promise<void> => {
+  console.log('[Audio] playDingSound called');
   try {
     const ctx = await initAudioContext();
+    console.log('[Audio] AudioContext state:', ctx?.state, 'Buffer ready:', !!dingSoundBuffer);
+    
     if (!ctx || !dingSoundBuffer) {
-      // Fallback to simple beep
+      console.log('[Audio] Falling back to simple ding');
       return playSimpleDing();
     }
     
     // Resume context if suspended
     if (ctx.state === 'suspended') {
+      console.log('[Audio] Resuming suspended AudioContext');
       await ctx.resume();
     }
     
@@ -176,32 +180,39 @@ export const playDingSound = async (): Promise<void> => {
     gain1.connect(ctx.destination);
     gain1.gain.value = 0.5;
     source1.start(0);
+    console.log('[Audio] First ding started');
     
     // Play second ding after short delay (for emphasis)
     return new Promise((resolve) => {
       setTimeout(() => {
-        const source2 = ctx.createBufferSource();
-        const gain2 = ctx.createGain();
-        
-        // Create higher pitched buffer for second ding
-        const sampleRate = ctx.sampleRate;
-        const duration = 0.6;
-        const buffer2 = ctx.createBuffer(1, sampleRate * duration, sampleRate);
-        const data2 = buffer2.getChannelData(0);
-        
-        for (let i = 0; i < data2.length; i++) {
-          const t = i / sampleRate;
-          const envelope = Math.exp(-t * 6);
-          data2[i] = Math.sin(2 * Math.PI * 1046 * t) * envelope * 0.4;
+        try {
+          const source2 = ctx.createBufferSource();
+          const gain2 = ctx.createGain();
+          
+          // Create higher pitched buffer for second ding
+          const sampleRate = ctx.sampleRate;
+          const duration = 0.6;
+          const buffer2 = ctx.createBuffer(1, sampleRate * duration, sampleRate);
+          const data2 = buffer2.getChannelData(0);
+          
+          for (let i = 0; i < data2.length; i++) {
+            const t = i / sampleRate;
+            const envelope = Math.exp(-t * 6);
+            data2[i] = Math.sin(2 * Math.PI * 1046 * t) * envelope * 0.4;
+          }
+          
+          source2.buffer = buffer2;
+          source2.connect(gain2);
+          gain2.connect(ctx.destination);
+          source2.start(0);
+          console.log('[Audio] Second ding started');
+          
+          setTimeout(resolve, 400);
+        } catch (err) {
+          console.error('[Audio] Second ding failed:', err);
+          resolve();
         }
-        
-        source2.buffer = buffer2;
-        source2.connect(gain2);
-        gain2.connect(ctx.destination);
-        source2.start(0);
-        
-        setTimeout(resolve, 400); // Reduced from 600ms
-      }, 120); // Reduced from 150ms
+      }, 120);
     });
   } catch (error) {
     console.error('[Audio] Failed to play optimized ding:', error);
@@ -267,7 +278,10 @@ export const getAllVoices = (): SpeechSynthesisVoice[] => {
 // OPTIMIZED Browser TTS - reduced overhead
 const playBrowserTTS = (text: string, speed: number, voiceName?: string): Promise<void> => {
   return new Promise((resolve) => {
+    console.log('[Audio] playBrowserTTS called:', { text, speed, voiceName });
+    
     if (!('speechSynthesis' in window)) {
+      console.warn('[Audio] speechSynthesis not available');
       resolve();
       return;
     }
@@ -279,11 +293,13 @@ const playBrowserTTS = (text: string, speed: number, voiceName?: string): Promis
     
     // Use cached voices for faster lookup
     const voices = voicesLoaded ? cachedVoices : window.speechSynthesis.getVoices();
+    console.log('[Audio] Available voices:', voices.length, 'Cached:', voicesLoaded);
     
     if (voiceName) {
       const selectedVoice = voices.find(v => v.name === voiceName);
       if (selectedVoice) {
         utterance.voice = selectedVoice;
+        console.log('[Audio] Using selected voice:', voiceName);
       }
     }
     
@@ -292,6 +308,9 @@ const playBrowserTTS = (text: string, speed: number, voiceName?: string): Promis
       const indonesianVoice = voices.find(v => v.lang.startsWith('id'));
       if (indonesianVoice) {
         utterance.voice = indonesianVoice;
+        console.log('[Audio] Using Indonesian fallback:', indonesianVoice.name);
+      } else {
+        console.log('[Audio] No Indonesian voice found, using default');
       }
     }
     
@@ -302,23 +321,29 @@ const playBrowserTTS = (text: string, speed: number, voiceName?: string): Promis
     
     // Set timeout to prevent hanging
     const timeout = setTimeout(() => {
-      console.warn('[Audio] TTS timeout, resolving');
+      console.warn('[Audio] TTS timeout after 10s, resolving');
       window.speechSynthesis.cancel();
       resolve();
     }, 10000);
     
+    utterance.onstart = () => {
+      console.log('[Audio] TTS started speaking');
+    };
+    
     utterance.onend = () => {
+      console.log('[Audio] TTS finished speaking');
       clearTimeout(timeout);
       resolve();
     };
     
     utterance.onerror = (e) => {
       clearTimeout(timeout);
-      console.error('[Audio] TTS error:', e);
+      console.error('[Audio] TTS error:', e.error);
       resolve();
     };
     
     window.speechSynthesis.speak(utterance);
+    console.log('[Audio] TTS speak() called');
   });
 };
 

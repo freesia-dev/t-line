@@ -244,6 +244,7 @@ const QueueDisplay = () => {
     });
 
     const unsubscribe = subscribeToQueueState((newState) => {
+      console.log('[Display] Queue state updated:', newState);
       setQueueState(newState);
       
       if (
@@ -252,13 +253,35 @@ const QueueDisplay = () => {
         newState.last_called_type &&
         newState.last_called_number
       ) {
-        if (soundEnabled && voiceConfigRef.current) {
+        console.log('[Display] New queue call detected:', {
+          type: newState.last_called_type,
+          number: newState.last_called_number,
+          soundEnabled,
+          hasVoiceConfig: !!voiceConfigRef.current
+        });
+        
+        if (soundEnabled) {
           const queueNumber = formatQueueNumber(
             newState.last_called_type as 'CS' | 'TELLER',
             newState.last_called_number
           );
           const destination = newState.last_called_type === 'CS' ? 'Customer Service' : 'Teller';
-          announceQueueWithConfig(queueNumber, destination, voiceConfigRef.current);
+          
+          // Use voiceConfigRef if available, otherwise use current voiceConfig state or fetch fresh
+          const configToUse = voiceConfigRef.current || voiceConfig;
+          
+          if (configToUse) {
+            console.log('[Display] Announcing with config:', configToUse);
+            announceQueueWithConfig(queueNumber, destination, configToUse);
+          } else {
+            // Fallback: fetch voice config and announce
+            console.log('[Display] No voice config, fetching...');
+            fetchVoiceConfig().then((freshConfig) => {
+              voiceConfigRef.current = freshConfig;
+              console.log('[Display] Fetched config, announcing:', freshConfig);
+              announceQueueWithConfig(queueNumber, destination, freshConfig);
+            });
+          }
         }
         
         if (newState.last_called_type === 'CS') {
