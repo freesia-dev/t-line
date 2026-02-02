@@ -9,6 +9,19 @@ let cachedVoices: SpeechSynthesisVoice[] = [];
 let dingSoundBuffer: AudioBuffer | null = null;
 let audioContext: AudioContext | null = null;
 
+// Prime/initialize the SAME AudioContext used by announcements.
+// IMPORTANT: Must be called from a user gesture in kiosk mode to satisfy autoplay policies.
+export const primeAnnouncementAudio = async (): Promise<void> => {
+  try {
+    const ctx = await initAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+      await ctx.resume();
+    }
+  } catch (e) {
+    console.warn('[Audio] primeAnnouncementAudio failed:', e);
+  }
+};
+
 // Pre-load voices immediately when module loads
 const preloadVoices = () => {
   if ('speechSynthesis' in window) {

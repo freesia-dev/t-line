@@ -5,7 +5,7 @@ import { fetchQueueState, formatQueueNumber, subscribeToQueueState, QueueState, 
 import { getPrintConfig, PrintConfig, TVDisplayConfig, VoiceConfig } from '@/lib/queueStore';
 import { fetchTVDisplayConfig, subscribeToTVDisplayConfig } from '@/lib/supabaseTVConfig';
 import { fetchVoiceConfig, subscribeToVoiceConfig } from '@/lib/supabaseVoiceConfig';
-import { announceQueueWithConfig, reloadVoices } from '@/lib/audioUtils';
+import { announceQueueWithConfig, primeAnnouncementAudio, reloadVoices } from '@/lib/audioUtils';
 import logoBank from '@/assets/logo-bankaltimtara.png';
 import { Volume2, VolumeX, Maximize, Minimize, Loader2, WifiOff, Wifi, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,10 @@ const QueueDisplay = () => {
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const [kioskReady, setKioskReady] = useState(false);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
+
+  // Ensure announcements never overlap/cancel each other (speechSynthesis.cancel is used internally).
+  const announceChainRef = useRef<Promise<void>>(Promise.resolve());
+  const pendingAnnouncementRef = useRef<null | { queueNumber: string; destination: string; config: VoiceConfig }>(null);
   
   const lastCalledRef = useRef<{ type: string | null; number: number | null; at: string | null }>({
     type: null,
@@ -37,10 +41,20 @@ const QueueDisplay = () => {
     at: null,
   });
   const voiceConfigRef = useRef<VoiceConfig | null>(null);
+  const soundEnabledRef = useRef<boolean>(true);
+  const audioUnlockedRef = useRef<boolean>(false);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const kioskAttemptRef = useRef(0);
   const audioContextRef = useRef<AudioContext | null>(null);
+
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
+
+  useEffect(() => {
+    audioUnlockedRef.current = audioUnlocked;
+  }, [audioUnlocked]);
 
   // Request Wake Lock to prevent screen sleep
   const requestWakeLock = useCallback(async () => {
@@ -127,31 +141,31 @@ const QueueDisplay = () => {
     console.log('[Display] Attempting to unlock audio...');
     
     try {
-      // Create or resume AudioContext
+      // Prime the announcement audio engine (the same AudioContext used by playDingSound/announceQueueWithConfig)
+      await primeAnnouncementAudio();
+
+      // Also keep a local AudioContext as a generic unlock fallback (some WebViews behave better this way)
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       }
-      
       if (audioContextRef.current.state === 'suspended') {
         await audioContextRef.current.resume();
         console.log('[Display] AudioContext resumed successfully');
       }
-      
-      // Play silent audio to fully unlock
       const buffer = audioContextRef.current.createBuffer(1, 1, 22050);
       const source = audioContextRef.current.createBufferSource();
       source.buffer = buffer;
       source.connect(audioContextRef.current.destination);
       source.start(0);
-      
-      // Also unlock Web Speech API
+
+      // Unlock Web Speech API in the same gesture
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance('');
         utterance.volume = 0;
         window.speechSynthesis.speak(utterance);
         window.speechSynthesis.cancel();
       }
-      
+
       setAudioUnlocked(true);
       console.log('[Display] Audio unlocked successfully!');
       toast.success('Audio aktif', { duration: 2000 });
@@ -159,6 +173,25 @@ const QueueDisplay = () => {
       console.error('[Display] Failed to unlock audio:', error);
     }
   }, [audioUnlocked]);
+
+  const enqueueAnnouncement = useCallback((queueNumber: string, destination: string, config: VoiceConfig) => {
+    announceChainRef.current = announceChainRef.current
+      .then(() => announceQueueWithConfig(queueNumber, destination, config))
+      .catch((err) => {
+        console.error('[Display] Announcement chain error:', err);
+      });
+  }, []);
+
+  // If a call happened while kiosk audio was locked, play it immediately after unlock.
+  useEffect(() => {
+    if (!audioUnlocked) return;
+    const pending = pendingAnnouncementRef.current;
+    if (!pending) return;
+
+    pendingAnnouncementRef.current = null;
+    console.log('[Display] Flushing pending announcement after audio unlock:', pending);
+    enqueueAnnouncement(pending.queueNumber, pending.destination, pending.config);
+  }, [audioUnlocked, enqueueAnnouncement]);
 
   // Auto-fullscreen and audio unlock on first user interaction
   useEffect(() => {
@@ -313,7 +346,7 @@ const QueueDisplay = () => {
           hasVoiceConfig: !!voiceConfigRef.current
         });
         
-        if (soundEnabled) {
+        if (soundEnabledRef.current) {
           const queueNumber = formatQueueNumber(
             newState.last_called_type as 'CS' | 'TELLER',
             newState.last_called_number
@@ -323,16 +356,27 @@ const QueueDisplay = () => {
           // Use voiceConfigRef if available, otherwise use current voiceConfig state or fetch fresh
           const configToUse = voiceConfigRef.current || voiceConfig;
           
-          if (configToUse) {
-            console.log('[Display] Announcing with config:', configToUse);
-            announceQueueWithConfig(queueNumber, destination, configToUse);
-          } else {
+           if (configToUse) {
+             // In kiosk mode, if audio isn't unlocked yet, don't drop the call—queue it.
+             if (isKioskMode && !audioUnlockedRef.current) {
+               console.log('[Display] Kiosk audio locked; saving pending announcement');
+               pendingAnnouncementRef.current = { queueNumber, destination, config: configToUse };
+             } else {
+               console.log('[Display] Announcing with config:', configToUse);
+               enqueueAnnouncement(queueNumber, destination, configToUse);
+             }
+           } else {
             // Fallback: fetch voice config and announce
             console.log('[Display] No voice config, fetching...');
             fetchVoiceConfig().then((freshConfig) => {
               voiceConfigRef.current = freshConfig;
               console.log('[Display] Fetched config, announcing:', freshConfig);
-              announceQueueWithConfig(queueNumber, destination, freshConfig);
+
+               if (isKioskMode && !audioUnlockedRef.current) {
+                 pendingAnnouncementRef.current = { queueNumber, destination, config: freshConfig };
+               } else {
+                 enqueueAnnouncement(queueNumber, destination, freshConfig);
+               }
             });
           }
         }
@@ -365,7 +409,7 @@ const QueueDisplay = () => {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [soundEnabled]);
+   }, [isKioskMode, enqueueAnnouncement]);
 
   useEffect(() => {
     const timeInterval = setInterval(() => {
