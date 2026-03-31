@@ -44,7 +44,7 @@ const QueueDisplay = () => {
   const soundEnabledRef = useRef<boolean>(true);
   const audioUnlockedRef = useRef<boolean>(false);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const kioskAttemptRef = useRef(0);
   const audioContextRef = useRef<AudioContext | null>(null);
 
