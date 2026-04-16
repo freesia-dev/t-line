@@ -390,7 +390,7 @@ export const resetQueue = async (): Promise<boolean> => {
       teller_serving: 0,
       cs_status: 'idle',
       teller_status: 'idle',
-      last_reset_date: new Date().toISOString().split('T')[0],
+      last_reset_date: getWIBBusinessDate(),
       last_called_type: null,
       last_called_number: null,
       last_called_at: null,
