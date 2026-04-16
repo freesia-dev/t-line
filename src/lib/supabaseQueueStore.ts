@@ -17,9 +17,21 @@ export interface QueueState {
   last_called_at: string | null;
 }
 
+// Get current date in WIB (UTC+7), considering 6 AM as the reset boundary
+const getWIBBusinessDate = (): string => {
+  const now = new Date();
+  // Convert to WIB (UTC+7)
+  const wibTime = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+  // If before 6 AM WIB, consider it still "yesterday"
+  if (wibTime.getUTCHours() < 6) {
+    wibTime.setUTCDate(wibTime.getUTCDate() - 1);
+  }
+  return wibTime.toISOString().split('T')[0];
+};
+
 // Fetch current queue state from Supabase
 export const fetchQueueState = async (): Promise<QueueState | null> => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getWIBBusinessDate();
   
   const { data, error } = await supabase
     .from('queue_state')
@@ -31,7 +43,7 @@ export const fetchQueueState = async (): Promise<QueueState | null> => {
     return null;
   }
   
-  // Check if we need to reset (new day)
+  // Check if we need to reset (new business day based on 6 AM WIB)
   if (data && data.last_reset_date !== today) {
     const { data: resetData, error: resetError } = await supabase
       .from('queue_state')
@@ -378,7 +390,7 @@ export const resetQueue = async (): Promise<boolean> => {
       teller_serving: 0,
       cs_status: 'idle',
       teller_status: 'idle',
-      last_reset_date: new Date().toISOString().split('T')[0],
+      last_reset_date: getWIBBusinessDate(),
       last_called_type: null,
       last_called_number: null,
       last_called_at: null,
