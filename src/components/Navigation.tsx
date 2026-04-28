@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Settings, Info, ChevronUp, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Settings, Info, ChevronUp, ChevronDown, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 
@@ -55,6 +55,20 @@ const Navigation = () => {
               >
                 <Settings size={20} />
                 <span>Konfigurasi</span>
+              </NavLink>
+
+              <NavLink
+                to="/riwayat"
+                className={({ isActive }) =>
+                  `flex items-center gap-2 rounded-xl px-5 py-3 font-medium transition-all duration-200 ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground shadow-lg'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`
+                }
+              >
+                <History size={20} />
+                <span>Riwayat</span>
               </NavLink>
 
               <NavLink

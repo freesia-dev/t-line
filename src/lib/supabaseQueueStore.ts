@@ -45,6 +45,19 @@ export const fetchQueueState = async (): Promise<QueueState | null> => {
   
   // Check if we need to reset (new business day based on 6 AM WIB)
   if (data && data.last_reset_date !== today) {
+    // Archive previous day's data before resetting (fallback if cron failed)
+    if (data.cs_queue > 0 || data.teller_queue > 0) {
+      await supabase
+        .from('queue_history')
+        .upsert({
+          business_date: data.last_reset_date,
+          cs_total: data.cs_queue,
+          teller_total: data.teller_queue,
+          cs_served: data.cs_serving,
+          teller_served: data.teller_serving,
+        }, { onConflict: 'business_date' });
+    }
+
     const { data: resetData, error: resetError } = await supabase
       .from('queue_state')
       .update({
