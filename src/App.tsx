@@ -11,6 +11,7 @@ import TellerCaller from "./pages/TellerCaller";
 import QueueDisplay from "./pages/QueueDisplay";
 import Install from "./pages/Install";
 import InstallDisplay from "./pages/InstallDisplay";
+import QueueHistory from "./pages/QueueHistory";
 import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/display" element={<QueueDisplay />} />
           <Route path="/install" element={<Install />} />
           <Route path="/install-display" element={<InstallDisplay />} />
+          <Route path="/riwayat" element={<QueueHistory />} />
           <Route path="/about" element={<About />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
