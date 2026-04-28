@@ -41,6 +41,39 @@ export type Database = {
         }
         Relationships: []
       }
+      queue_history: {
+        Row: {
+          archived_at: string
+          business_date: string
+          created_at: string
+          cs_served: number
+          cs_total: number
+          id: string
+          teller_served: number
+          teller_total: number
+        }
+        Insert: {
+          archived_at?: string
+          business_date: string
+          created_at?: string
+          cs_served?: number
+          cs_total?: number
+          id?: string
+          teller_served?: number
+          teller_total?: number
+        }
+        Update: {
+          archived_at?: string
+          business_date?: string
+          created_at?: string
+          cs_served?: number
+          cs_total?: number
+          id?: string
+          teller_served?: number
+          teller_total?: number
+        }
+        Relationships: []
+      }
       queue_state: {
         Row: {
           created_at: string
@@ -184,7 +217,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      archive_and_reset_queue: { Args: never; Returns: undefined }
+      cleanup_old_queue_history: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
