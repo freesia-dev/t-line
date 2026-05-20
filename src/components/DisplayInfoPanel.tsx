@@ -111,7 +111,7 @@ interface RatesTableProps {
   rows: string[][];
 }
 
-const RatesTable = ({ title, icon, gradient, headers, rows }: RatesTableProps) => {
+export const RatesTable = ({ title, icon, gradient, headers, rows }: RatesTableProps) => {
   return (
     <div className={`w-full h-full rounded-xl bg-gradient-to-br ${gradient} shadow-2xl flex flex-col overflow-hidden`}>
       {/* Header */}

@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 
 interface LayoutPreviewProps {
-  layout: 'layout1' | 'layout2' | 'layout3' | 'layout4';
+  layout: 'layout1' | 'layout2' | 'layout3' | 'layout4' | 'layout5';
   isSelected: boolean;
   onClick: () => void;
 }
@@ -54,6 +54,25 @@ const LayoutPreview = ({ layout, isSelected, onClick }: LayoutPreviewProps) => {
         <div className="flex h-full gap-1">
           <div className="flex-1 bg-emerald-500/50 rounded text-[6px] flex items-center justify-center">TELLER</div>
           <div className="flex-1 bg-blue-500/50 rounded text-[6px] flex items-center justify-center">CS</div>
+        </div>
+      ),
+    },
+    layout5: {
+      name: 'Dashboard Lengkap',
+      description: 'Media + antrian + bunga produk & deposito',
+      preview: (
+        <div className="flex flex-col h-full gap-0.5">
+          <div className="flex-[2] flex gap-0.5">
+            <div className="flex-[3] bg-purple-500/30 rounded text-[5px] flex items-center justify-center">MEDIA</div>
+            <div className="flex-[2] flex flex-col gap-0.5">
+              <div className="flex gap-0.5 h-1/3">
+                <div className="flex-1 bg-emerald-500/50 rounded text-[5px] flex items-center justify-center">T</div>
+                <div className="flex-1 bg-blue-500/50 rounded text-[5px] flex items-center justify-center">CS</div>
+              </div>
+              <div className="flex-1 bg-amber-500/40 rounded text-[5px] flex items-center justify-center">PRODUK</div>
+            </div>
+          </div>
+          <div className="h-1/4 bg-emerald-600/40 rounded text-[5px] flex items-center justify-center">DEPOSITO</div>
         </div>
       ),
     },

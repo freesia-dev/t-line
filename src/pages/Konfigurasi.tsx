@@ -293,7 +293,7 @@ const Konfigurasi = () => {
                   <div className="space-y-3">
                     <Label>Pilih Layout</Label>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {(['layout1', 'layout2', 'layout3', 'layout4'] as const).map((layout) => (
+                     {(['layout1', 'layout2', 'layout3', 'layout4', 'layout5'] as const).map((layout) => (
                         <LayoutPreview
                           key={layout}
                           layout={layout}
