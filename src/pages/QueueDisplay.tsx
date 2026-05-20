@@ -582,14 +582,41 @@ const QueueDisplay = () => {
     );
   };
 
+  // Decorative empty / fallback state with brand silhouette
+  const MediaEmpty = ({ label = 'Tidak ada media' }: { label?: string }) => (
+    <div className="relative w-full h-full rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 flex items-center justify-center shadow-2xl">
+      {/* Silhouette pattern */}
+      <svg className="absolute inset-0 w-full h-full text-white/10" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden>
+        <defs>
+          <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1.2" fill="currentColor" />
+          </pattern>
+        </defs>
+        <rect width="400" height="300" fill="url(#dots)" />
+        {/* Building silhouette */}
+        <g fill="currentColor" className="text-white/15">
+          <rect x="60" y="160" width="280" height="120" />
+          <polygon points="60,160 200,90 340,160" />
+          <rect x="190" y="200" width="20" height="80" className="text-blue-900/30" fill="currentColor" />
+          <rect x="100" y="190" width="30" height="30" />
+          <rect x="150" y="190" width="30" height="30" />
+          <rect x="220" y="190" width="30" height="30" />
+          <rect x="270" y="190" width="30" height="30" />
+        </g>
+      </svg>
+      <div className="relative text-center text-white/90 px-6">
+        <div className="font-bold tracking-wide drop-shadow-lg" style={{ fontSize: 'clamp(1rem, 3vmin, 2.25rem)' }}>
+          {printConfig.bankName?.split(' ').slice(0, 3).join(' ') || 'Selamat Datang'}
+        </div>
+        <div className="opacity-70 mt-2" style={{ fontSize: 'clamp(0.7rem, 1.6vmin, 1.1rem)' }}>{label}</div>
+      </div>
+    </div>
+  );
+
   // Media Component
   const MediaContent = () => {
     if (!tvConfig.showMedia) {
-      return (
-        <div className="w-full h-full bg-gray-100 rounded-xl flex items-center justify-center border-2 border-gray-200">
-          <p className="text-gray-400" style={{ fontSize: 'clamp(0.75rem, 1.5vw, 1rem)' }}>Tidak ada media</p>
-        </div>
-      );
+      return <MediaEmpty label="Media dinonaktifkan" />;
     }
 
     // Video mode
@@ -686,11 +713,7 @@ const QueueDisplay = () => {
     }
 
     // Fallback - no media configured
-    return (
-      <div className="w-full h-full bg-gray-100 rounded-xl flex items-center justify-center border-2 border-gray-200">
-        <p className="text-gray-400" style={{ fontSize: 'clamp(0.75rem, 1.5vw, 1rem)' }}>Tidak ada media</p>
-      </div>
-    );
+    return <MediaEmpty />;
   };
 
   // Wraps MediaContent + interest-rate / FX panels with optional rotation
