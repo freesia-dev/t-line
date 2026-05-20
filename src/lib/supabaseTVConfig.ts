@@ -139,7 +139,7 @@ export const saveTVDisplayConfigToSupabase = async (config: TVDisplayConfig): Pr
       .upsert({
         id: 'default',
         ...configToRow(config),
-      });
+      } as never);
 
     if (error) {
       console.error('Error saving TV config:', error);
