@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import DisplayInfoPanel from '@/components/DisplayInfoPanel';
 import { RatesTable } from '@/components/DisplayInfoPanel';
-import { PiggyBank, TrendingUp } from 'lucide-react';
+import { PiggyBank, TrendingUp, Clock } from 'lucide-react';
 
 const QueueDisplay = () => {
   const [searchParams] = useSearchParams();
