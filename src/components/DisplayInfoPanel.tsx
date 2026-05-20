@@ -112,11 +112,36 @@ interface RatesTableProps {
 }
 
 export const RatesTable = ({ title, icon, gradient, headers, rows }: RatesTableProps) => {
+  // Auto-shrink font based on row count so all rows always fit without being clipped.
+  const rowCount = Math.max(rows.length, 1);
+  // Use cqh (container-query height) so rows scale with the table's own height.
+  const rowFontSize =
+    rowCount <= 3
+      ? 'clamp(0.85rem, 2.6cqh, 2rem)'
+      : rowCount <= 5
+      ? 'clamp(0.75rem, 2.2cqh, 1.6rem)'
+      : rowCount <= 7
+      ? 'clamp(0.7rem, 1.8cqh, 1.3rem)'
+      : 'clamp(0.6rem, 1.5cqh, 1.1rem)';
+
   return (
-    <div className={`w-full h-full rounded-xl bg-gradient-to-br ${gradient} shadow-2xl flex flex-col overflow-hidden`}>
+    <div
+      className={`relative w-full h-full rounded-2xl bg-gradient-to-br ${gradient} shadow-2xl flex flex-col overflow-hidden`}
+      style={{ containerType: 'size' } as React.CSSProperties}
+    >
+      {/* Decorative silhouette */}
+      <svg
+        className="absolute -right-6 -bottom-6 w-1/2 h-1/2 text-white/5 pointer-events-none"
+        viewBox="0 0 200 200"
+        fill="currentColor"
+        aria-hidden
+      >
+        <circle cx="160" cy="160" r="120" />
+        <circle cx="160" cy="160" r="80" className="text-white/5" />
+      </svg>
       {/* Header */}
       <div
-        className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 bg-black/20 text-white shrink-0"
+        className="relative flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 bg-black/25 backdrop-blur-sm text-white shrink-0 border-b border-white/10"
       >
         <div style={{ fontSize: 'clamp(1rem, 2.5vmin, 2rem)' }} className="flex items-center">
           {icon}
@@ -130,7 +155,7 @@ export const RatesTable = ({ title, icon, gradient, headers, rows }: RatesTableP
       </div>
 
       {/* Table */}
-      <div className="flex-1 min-h-0 flex flex-col p-2 sm:p-3 overflow-hidden">
+      <div className="relative flex-1 min-h-0 flex flex-col p-2 sm:p-3 overflow-hidden">
         {/* Column headers */}
         <div
           className="grid border-b border-white/30 pb-1 sm:pb-2 mb-1 sm:mb-2 text-white/80 font-semibold uppercase tracking-wide shrink-0"
@@ -146,8 +171,8 @@ export const RatesTable = ({ title, icon, gradient, headers, rows }: RatesTableP
           ))}
         </div>
 
-        {/* Rows: distribute available space evenly */}
-        <div className="flex-1 min-h-0 flex flex-col justify-around gap-0.5">
+        {/* Rows: each row flexes equally so they always fit */}
+        <div className="flex-1 min-h-0 flex flex-col gap-0.5">
           {rows.length === 0 ? (
             <div className="text-center text-white/70 py-4" style={{ fontSize: 'clamp(0.75rem, 1.5vmin, 1rem)' }}>
               Belum ada data
@@ -156,10 +181,10 @@ export const RatesTable = ({ title, icon, gradient, headers, rows }: RatesTableP
             rows.map((row, idx) => (
               <div
                 key={idx}
-                className="grid items-center text-white py-1 px-1 rounded-md odd:bg-white/5"
+                className="grid items-center text-white px-2 rounded-md odd:bg-white/10 flex-1 min-h-0"
                 style={{
                   gridTemplateColumns: `1.5fr repeat(${row.length - 1}, 1fr)`,
-                  fontSize: 'clamp(0.75rem, 2vmin, 1.5rem)',
+                  fontSize: rowFontSize,
                 }}
               >
                 {row.map((cell, i) => (
