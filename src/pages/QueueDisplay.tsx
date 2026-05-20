@@ -582,14 +582,41 @@ const QueueDisplay = () => {
     );
   };
 
+  // Decorative empty / fallback state with brand silhouette
+  const MediaEmpty = ({ label = 'Tidak ada media' }: { label?: string }) => (
+    <div className="relative w-full h-full rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 flex items-center justify-center shadow-2xl">
+      {/* Silhouette pattern */}
+      <svg className="absolute inset-0 w-full h-full text-white/10" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden>
+        <defs>
+          <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1.2" fill="currentColor" />
+          </pattern>
+        </defs>
+        <rect width="400" height="300" fill="url(#dots)" />
+        {/* Building silhouette */}
+        <g fill="currentColor" className="text-white/15">
+          <rect x="60" y="160" width="280" height="120" />
+          <polygon points="60,160 200,90 340,160" />
+          <rect x="190" y="200" width="20" height="80" className="text-blue-900/30" fill="currentColor" />
+          <rect x="100" y="190" width="30" height="30" />
+          <rect x="150" y="190" width="30" height="30" />
+          <rect x="220" y="190" width="30" height="30" />
+          <rect x="270" y="190" width="30" height="30" />
+        </g>
+      </svg>
+      <div className="relative text-center text-white/90 px-6">
+        <div className="font-bold tracking-wide drop-shadow-lg" style={{ fontSize: 'clamp(1rem, 3vmin, 2.25rem)' }}>
+          {printConfig.bankName?.split(' ').slice(0, 3).join(' ') || 'Selamat Datang'}
+        </div>
+        <div className="opacity-70 mt-2" style={{ fontSize: 'clamp(0.7rem, 1.6vmin, 1.1rem)' }}>{label}</div>
+      </div>
+    </div>
+  );
+
   // Media Component
   const MediaContent = () => {
     if (!tvConfig.showMedia) {
-      return (
-        <div className="w-full h-full bg-gray-100 rounded-xl flex items-center justify-center border-2 border-gray-200">
-          <p className="text-gray-400" style={{ fontSize: 'clamp(0.75rem, 1.5vw, 1rem)' }}>Tidak ada media</p>
-        </div>
-      );
+      return <MediaEmpty label="Media dinonaktifkan" />;
     }
 
     // Video mode
@@ -686,11 +713,7 @@ const QueueDisplay = () => {
     }
 
     // Fallback - no media configured
-    return (
-      <div className="w-full h-full bg-gray-100 rounded-xl flex items-center justify-center border-2 border-gray-200">
-        <p className="text-gray-400" style={{ fontSize: 'clamp(0.75rem, 1.5vw, 1rem)' }}>Tidak ada media</p>
-      </div>
-    );
+    return <MediaEmpty />;
   };
 
   // Wraps MediaContent + interest-rate / FX panels with optional rotation
@@ -802,7 +825,7 @@ const QueueDisplay = () => {
     </div>
   );
 
-  // Compact queue card for dashboard layout
+  // Compact hero queue card for dashboard layout
   const CompactQueueCard = ({ type, number, flash, status }: {
     type: 'TELLER' | 'CS';
     number: string;
@@ -812,48 +835,64 @@ const QueueDisplay = () => {
     const isTeller = type === 'TELLER';
     const statusBadge = getStatusBadge(status);
     const bgClass = flash
-      ? (isTeller ? 'bg-gradient-to-br from-amber-400 to-amber-500' : 'bg-gradient-to-br from-blue-400 to-blue-500')
-      : (isTeller ? 'bg-gradient-to-br from-amber-500 to-amber-600' : 'bg-gradient-to-br from-blue-500 to-blue-600');
+      ? (isTeller ? 'bg-gradient-to-br from-amber-300 via-amber-500 to-orange-600' : 'bg-gradient-to-br from-blue-300 via-blue-500 to-indigo-700')
+      : (isTeller ? 'bg-gradient-to-br from-amber-400 via-amber-600 to-orange-700' : 'bg-gradient-to-br from-blue-500 via-blue-700 to-indigo-800');
     return (
       <motion.div
-        className={`rounded-2xl ${bgClass} shadow-2xl h-full w-full flex flex-col justify-center items-center p-2 sm:p-3 overflow-hidden`}
+        className={`relative rounded-2xl ${bgClass} shadow-2xl h-full w-full flex flex-col justify-center items-center p-2 sm:p-3 overflow-hidden ring-1 ring-white/20`}
         animate={flash ? { scale: [1, 1.03, 1] } : {}}
         transition={{ duration: 0.5, repeat: flash ? Infinity : 0 }}
       >
-        <h2
-          className="font-bold text-white drop-shadow text-center leading-tight"
-          style={{ fontSize: 'clamp(0.7rem, 1.8vmin, 1.5rem)' }}
-        >
-          {isTeller ? 'TELLER' : 'CUSTOMER SERVICE'}
-        </h2>
-        <span
-          className={`mt-1 px-2 py-0.5 rounded-full text-white font-semibold ${statusBadge.bg}`}
-          style={{ fontSize: 'clamp(0.55rem, 1.2vmin, 0.95rem)' }}
-        >
-          {statusBadge.text}
-        </span>
+        {/* Decorative silhouette: big letter + arcs */}
         <div
-          className="font-black text-white leading-none drop-shadow-xl mt-1"
-          style={{ fontSize: 'clamp(2.2rem, 9vmin, 7rem)' }}
+          className="absolute -right-4 -top-4 font-black text-white/10 leading-none select-none pointer-events-none"
+          style={{ fontSize: 'clamp(5rem, 22vmin, 16rem)' }}
+          aria-hidden
         >
-          {number}
+          {isTeller ? 'A' : 'B'}
+        </div>
+        <svg className="absolute -left-10 -bottom-10 w-2/3 h-2/3 text-white/10 pointer-events-none" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+          <circle cx="20" cy="80" r="60" />
+          <circle cx="20" cy="80" r="40" />
+          <circle cx="20" cy="80" r="20" />
+        </svg>
+
+        <div className="relative flex flex-col items-center w-full">
+          <h2
+            className="font-bold text-white drop-shadow text-center leading-tight tracking-wide"
+            style={{ fontSize: 'clamp(0.7rem, 1.8vmin, 1.5rem)' }}
+          >
+            {isTeller ? 'TELLER' : 'CUSTOMER SERVICE'}
+          </h2>
+          <span
+            className={`mt-1 px-3 py-0.5 rounded-full text-white font-semibold shadow ${statusBadge.bg}`}
+            style={{ fontSize: 'clamp(0.55rem, 1.2vmin, 0.95rem)' }}
+          >
+            {statusBadge.text}
+          </span>
+          <div
+            className="font-black text-white leading-none drop-shadow-xl mt-2 tabular-nums"
+            style={{ fontSize: 'clamp(2.5rem, 11vmin, 8rem)' }}
+          >
+            {number}
+          </div>
         </div>
       </motion.div>
     );
   };
 
   const Layout5 = () => (
-    <div className="flex flex-col gap-2 sm:gap-3 h-full">
-      {/* Top: Media + (Queues + Product rates) */}
-      <div className="flex-[2] min-h-0 flex gap-2 sm:gap-3">
-        {/* Media */}
+    <div className="flex flex-col gap-2 sm:gap-3 h-full min-h-0">
+      {/* Top section: 60% height — Media + (Queues over Product rates) */}
+      <div className="flex-[3] min-h-0 flex gap-2 sm:gap-3">
+        {/* Media (hero) */}
         <div className="flex-[3] min-w-0">
           <MediaContent />
         </div>
         {/* Right column */}
         <div className="flex-[2] min-w-0 flex flex-col gap-2 sm:gap-3">
-          {/* Queue numbers */}
-          <div className="flex gap-2 sm:gap-3" style={{ height: '38%' }}>
+          {/* Queue numbers — bigger so they read like hero */}
+          <div className="flex gap-2 sm:gap-3 flex-[5] min-h-0">
             <div className="flex-1 min-w-0">
               <CompactQueueCard
                 type="TELLER"
@@ -872,23 +911,23 @@ const QueueDisplay = () => {
             </div>
           </div>
           {/* Product rates */}
-          <div className="flex-1 min-h-0">
+          <div className="flex-[4] min-h-0">
             <RatesTable
               title="Suku Bunga Produk"
               icon={<PiggyBank />}
-              gradient="from-blue-600 to-blue-800"
+              gradient="from-blue-600 via-blue-700 to-indigo-800"
               headers={['Produk', 'Bunga', 'Ket.']}
               rows={(tvConfig.productRates || []).map((r) => [r.name, r.rate, r.note || '-'])}
             />
           </div>
         </div>
       </div>
-      {/* Bottom: Deposit rates full width */}
-      <div className="flex-1 min-h-0">
+      {/* Bottom: Deposit rates full width — 40% height */}
+      <div className="flex-[2] min-h-0">
         <RatesTable
           title="Suku Bunga Deposito"
           icon={<TrendingUp />}
-          gradient="from-emerald-600 to-emerald-800"
+          gradient="from-emerald-600 via-emerald-700 to-teal-800"
           headers={['Tenor', 'Bunga p.a']}
           rows={(tvConfig.depositRates || []).map((r) => [r.tenor, r.rate])}
         />
