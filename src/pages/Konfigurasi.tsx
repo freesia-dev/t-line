@@ -426,10 +426,6 @@ const Konfigurasi = () => {
                     )}
                   </div>
 
-                  {/* Running Text Settings */}
-                  <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
-                  </div>
-
                   {/* Info Panel Settings */}
                   <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
                     <div className="space-y-2">
