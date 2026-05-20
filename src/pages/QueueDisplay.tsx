@@ -881,10 +881,6 @@ const QueueDisplay = () => {
     );
   };
 
-  const Layout5 = () => (
-    <></>
-  );
-
   const DepositHeroStrip = ({ rates }: { rates: { tenor: string; rate: string }[] }) => {
     const count = Math.max(rates.length, 1);
     const tenorSize = count <= 4
@@ -953,7 +949,7 @@ const QueueDisplay = () => {
     );
   };
 
-  const Layout5Real = () => (
+  const Layout5 = () => (
     <div className="flex flex-col gap-2 sm:gap-3 h-full min-h-0">
       {/* Top: Media + (Queues over Product Rates) */}
       <div className="flex-[5] min-h-0 flex gap-2 sm:gap-3">
