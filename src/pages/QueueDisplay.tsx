@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import DisplayInfoPanel from '@/components/DisplayInfoPanel';
 import { RatesTable } from '@/components/DisplayInfoPanel';
-import { PiggyBank, TrendingUp } from 'lucide-react';
+import { PiggyBank, TrendingUp, Clock } from 'lucide-react';
 
 const QueueDisplay = () => {
   const [searchParams] = useSearchParams();
@@ -881,18 +881,86 @@ const QueueDisplay = () => {
     );
   };
 
+  const DepositHeroStrip = ({ rates }: { rates: { tenor: string; rate: string }[] }) => {
+    const count = Math.max(rates.length, 1);
+    const tenorSize = count <= 4
+      ? 'clamp(0.85rem, 2.2vmin, 1.5rem)'
+      : count <= 6
+      ? 'clamp(0.75rem, 1.9vmin, 1.25rem)'
+      : 'clamp(0.65rem, 1.6vmin, 1.05rem)';
+    const rateSize = count <= 4
+      ? 'clamp(2rem, 7vmin, 5.5rem)'
+      : count <= 6
+      ? 'clamp(1.6rem, 5.5vmin, 4.5rem)'
+      : 'clamp(1.3rem, 4.5vmin, 3.5rem)';
+
+    return (
+      <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-emerald-700 via-emerald-800 to-teal-900 shadow-2xl flex flex-col overflow-hidden p-2 sm:p-3 gap-2 sm:gap-3">
+        {/* Decorative silhouette */}
+        <svg className="absolute -right-8 -top-8 w-1/3 h-1/3 text-white/5 pointer-events-none" viewBox="0 0 100 100" fill="currentColor" aria-hidden>
+          <circle cx="70" cy="30" r="40" />
+          <circle cx="70" cy="30" r="25" className="text-white/5" />
+        </svg>
+        {/* Header */}
+        <div className="relative flex items-center gap-2 sm:gap-3 px-2 shrink-0 text-white">
+          <TrendingUp style={{ width: 'clamp(1rem, 2.4vmin, 2rem)', height: 'clamp(1rem, 2.4vmin, 2rem)' }} />
+          <h3 className="font-bold uppercase tracking-wide drop-shadow" style={{ fontSize: 'clamp(0.9rem, 2.2vmin, 1.75rem)' }}>
+            Suku Bunga Deposito
+          </h3>
+          <span className="ml-auto text-white/70" style={{ fontSize: 'clamp(0.6rem, 1.3vmin, 0.95rem)' }}>
+            % per tahun
+          </span>
+        </div>
+        {/* Hero cards strip */}
+        <div className="relative flex-1 min-h-0 flex gap-2 sm:gap-3">
+          {rates.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-white/70" style={{ fontSize: 'clamp(0.75rem, 1.5vmin, 1rem)' }}>
+              Belum ada data deposito
+            </div>
+          ) : (
+            rates.map((r, i) => (
+              <div
+                key={i}
+                className="relative flex-1 min-w-0 rounded-xl bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-sm ring-1 ring-white/20 shadow-lg flex flex-col items-center justify-center p-1 sm:p-2 overflow-hidden"
+              >
+                {/* Decorative big silhouette per card */}
+                <Clock
+                  className="absolute -right-3 -bottom-3 text-white/10 pointer-events-none"
+                  style={{ width: 'clamp(3rem, 10vmin, 7rem)', height: 'clamp(3rem, 10vmin, 7rem)' }}
+                  aria-hidden
+                />
+                <div
+                  className="relative font-semibold uppercase tracking-wide text-white/80 text-center leading-tight"
+                  style={{ fontSize: tenorSize }}
+                >
+                  {r.tenor}
+                </div>
+                <div
+                  className="relative font-black text-white leading-none drop-shadow-xl tabular-nums mt-1"
+                  style={{ fontSize: rateSize }}
+                >
+                  {r.rate}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const Layout5 = () => (
     <div className="flex flex-col gap-2 sm:gap-3 h-full min-h-0">
-      {/* Top section: 60% height — Media + (Queues over Product rates) */}
-      <div className="flex-[3] min-h-0 flex gap-2 sm:gap-3">
+      {/* Top: Media + (Queues over Product Rates) */}
+      <div className="flex-[5] min-h-0 flex gap-2 sm:gap-3">
         {/* Media (hero) */}
-        <div className="flex-[3] min-w-0">
+        <div className="flex-[5] min-w-0">
           <MediaContent />
         </div>
-        {/* Right column */}
-        <div className="flex-[2] min-w-0 flex flex-col gap-2 sm:gap-3">
-          {/* Queue numbers — bigger so they read like hero */}
-          <div className="flex gap-2 sm:gap-3 flex-[5] min-h-0">
+        {/* Right column: queues + product rates */}
+        <div className="flex-[4] min-w-0 flex flex-col gap-2 sm:gap-3">
+          {/* Queue numbers */}
+          <div className="flex gap-2 sm:gap-3 flex-[4] min-h-0">
             <div className="flex-1 min-w-0">
               <CompactQueueCard
                 type="TELLER"
@@ -910,8 +978,8 @@ const QueueDisplay = () => {
               />
             </div>
           </div>
-          {/* Product rates */}
-          <div className="flex-[4] min-h-0">
+          {/* Product rates — more breathing room */}
+          <div className="flex-[6] min-h-0">
             <RatesTable
               title="Suku Bunga Produk"
               icon={<PiggyBank />}
@@ -922,15 +990,9 @@ const QueueDisplay = () => {
           </div>
         </div>
       </div>
-      {/* Bottom: Deposit rates full width — 40% height */}
-      <div className="flex-[2] min-h-0">
-        <RatesTable
-          title="Suku Bunga Deposito"
-          icon={<TrendingUp />}
-          gradient="from-emerald-600 via-emerald-700 to-teal-800"
-          headers={['Tenor', 'Bunga p.a']}
-          rows={(tvConfig.depositRates || []).map((r) => [r.tenor, r.rate])}
-        />
+      {/* Bottom: Deposit rates as hero cards — one per tenor */}
+      <div className="flex-[3] min-h-0">
+        <DepositHeroStrip rates={tvConfig.depositRates || []} />
       </div>
     </div>
   );
