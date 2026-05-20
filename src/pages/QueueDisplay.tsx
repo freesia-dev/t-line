@@ -883,16 +883,16 @@ const QueueDisplay = () => {
 
   const Layout5 = () => (
     <div className="flex flex-col gap-2 sm:gap-3 h-full min-h-0">
-      {/* Top section: 60% height — Media + (Queues over Product rates) */}
-      <div className="flex-[3] min-h-0 flex gap-2 sm:gap-3">
+      {/* Top: Media + (Queues over Product Rates) */}
+      <div className="flex-[5] min-h-0 flex gap-2 sm:gap-3">
         {/* Media (hero) */}
-        <div className="flex-[3] min-w-0">
+        <div className="flex-[5] min-w-0">
           <MediaContent />
         </div>
-        {/* Right column */}
-        <div className="flex-[2] min-w-0 flex flex-col gap-2 sm:gap-3">
-          {/* Queue numbers — bigger so they read like hero */}
-          <div className="flex gap-2 sm:gap-3 flex-[5] min-h-0">
+        {/* Right column: queues + product rates */}
+        <div className="flex-[4] min-w-0 flex flex-col gap-2 sm:gap-3">
+          {/* Queue numbers */}
+          <div className="flex gap-2 sm:gap-3 flex-[4] min-h-0">
             <div className="flex-1 min-w-0">
               <CompactQueueCard
                 type="TELLER"
@@ -910,8 +910,8 @@ const QueueDisplay = () => {
               />
             </div>
           </div>
-          {/* Product rates */}
-          <div className="flex-[4] min-h-0">
+          {/* Product rates — more breathing room */}
+          <div className="flex-[6] min-h-0">
             <RatesTable
               title="Suku Bunga Produk"
               icon={<PiggyBank />}
@@ -922,15 +922,9 @@ const QueueDisplay = () => {
           </div>
         </div>
       </div>
-      {/* Bottom: Deposit rates full width — 40% height */}
-      <div className="flex-[2] min-h-0">
-        <RatesTable
-          title="Suku Bunga Deposito"
-          icon={<TrendingUp />}
-          gradient="from-emerald-600 via-emerald-700 to-teal-800"
-          headers={['Tenor', 'Bunga p.a']}
-          rows={(tvConfig.depositRates || []).map((r) => [r.tenor, r.rate])}
-        />
+      {/* Bottom: Deposit rates as hero cards — one per tenor */}
+      <div className="flex-[3] min-h-0">
+        <DepositHeroStrip rates={tvConfig.depositRates || []} />
       </div>
     </div>
   );
