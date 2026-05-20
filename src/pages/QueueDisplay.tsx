@@ -10,6 +10,7 @@ import logoBank from '@/assets/logo-bankaltimtara.png';
 import { Volume2, VolumeX, Maximize, Minimize, Loader2, WifiOff, Wifi, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import DisplayInfoPanel from '@/components/DisplayInfoPanel';
 
 const QueueDisplay = () => {
   const [searchParams] = useSearchParams();
@@ -690,6 +691,11 @@ const QueueDisplay = () => {
     );
   };
 
+  // Wraps MediaContent + interest-rate / FX panels with optional rotation
+  const InfoArea = () => (
+    <DisplayInfoPanel config={tvConfig} renderMedia={() => <MediaContent />} />
+  );
+
   // Layout Components with responsive gap
   const Layout1 = () => (
     <div className="flex gap-2 sm:gap-4 h-full">
@@ -712,7 +718,7 @@ const QueueDisplay = () => {
         />
       </div>
       <div className="w-1/2">
-        <MediaContent />
+        <InfoArea />
       </div>
     </div>
   );
@@ -738,7 +744,7 @@ const QueueDisplay = () => {
         />
       </div>
       <div className="h-1/3">
-        <MediaContent />
+        <InfoArea />
       </div>
     </div>
   );
@@ -746,7 +752,7 @@ const QueueDisplay = () => {
   const Layout3 = () => (
     <div className="flex gap-2 sm:gap-4 h-full">
       <div className="w-1/2">
-        <MediaContent />
+        <InfoArea />
       </div>
       <div className="flex-1 flex flex-col gap-2 sm:gap-4">
         <QueueCard 
