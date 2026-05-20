@@ -964,7 +964,7 @@ const QueueDisplay = () => {
         {/* Right column: queues + product rates */}
         <div className="flex-[4] min-w-0 flex flex-col gap-2 sm:gap-3">
           {/* Queue numbers */}
-          <div className="flex gap-2 sm:gap-3 flex-[4] min-h-0">
+          <div className="flex gap-2 sm:gap-3 flex-[3] min-h-0">
             <div className="flex-1 min-w-0">
               <CompactQueueCard
                 type="TELLER"
@@ -983,7 +983,7 @@ const QueueDisplay = () => {
             </div>
           </div>
           {/* Product rates — more breathing room */}
-          <div className="flex-[6] min-h-0">
+          <div className="flex-[5] min-h-0">
             <RatesTable
               title="Suku Bunga Produk"
               icon={<PiggyBank />}
