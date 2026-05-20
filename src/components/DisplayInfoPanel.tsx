@@ -117,12 +117,12 @@ export const RatesTable = ({ title, icon, gradient, headers, rows }: RatesTableP
   // Use cqh (container-query height) so rows scale with the table's own height.
   const rowFontSize =
     rowCount <= 3
-      ? 'clamp(0.85rem, 2.6cqh, 2rem)'
+      ? 'clamp(0.7rem, 9cqh, 2rem)'
       : rowCount <= 5
-      ? 'clamp(0.75rem, 2.2cqh, 1.6rem)'
+      ? 'clamp(0.55rem, 6.5cqh, 1.5rem)'
       : rowCount <= 7
-      ? 'clamp(0.7rem, 1.8cqh, 1.3rem)'
-      : 'clamp(0.6rem, 1.5cqh, 1.1rem)';
+      ? 'clamp(0.5rem, 5cqh, 1.2rem)'
+      : 'clamp(0.45rem, 4cqh, 1rem)';
 
   return (
     <div
@@ -172,7 +172,7 @@ export const RatesTable = ({ title, icon, gradient, headers, rows }: RatesTableP
         </div>
 
         {/* Rows: each row flexes equally so they always fit */}
-        <div className="flex-1 min-h-0 flex flex-col gap-0.5">
+        <div className="flex-1 min-h-0 flex flex-col gap-0.5 overflow-hidden">
           {rows.length === 0 ? (
             <div className="text-center text-white/70 py-4" style={{ fontSize: 'clamp(0.75rem, 1.5vmin, 1rem)' }}>
               Belum ada data
@@ -181,7 +181,7 @@ export const RatesTable = ({ title, icon, gradient, headers, rows }: RatesTableP
             rows.map((row, idx) => (
               <div
                 key={idx}
-                className="grid items-center text-white px-2 rounded-md odd:bg-white/10 flex-1 min-h-0"
+                className="grid items-center text-white px-2 rounded-md odd:bg-white/10 flex-1 min-h-0 overflow-hidden leading-none"
                 style={{
                   gridTemplateColumns: `1.5fr repeat(${row.length - 1}, 1fr)`,
                   fontSize: rowFontSize,
@@ -190,7 +190,7 @@ export const RatesTable = ({ title, icon, gradient, headers, rows }: RatesTableP
                 {row.map((cell, i) => (
                   <span
                     key={i}
-                    className={`${i === 0 ? 'text-left font-medium' : 'text-right font-bold tabular-nums'} truncate`}
+                    className={`${i === 0 ? 'text-left font-medium' : 'text-right font-bold tabular-nums'} truncate leading-none`}
                   >
                     {cell}
                   </span>
