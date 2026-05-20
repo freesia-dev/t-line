@@ -27,6 +27,30 @@ export interface DisplayConfig {
 
 export type SlideshowAnimation = 'fade' | 'slide' | 'zoom' | 'slideUp';
 
+export interface ProductRate {
+  name: string;
+  rate: string;
+  note?: string;
+}
+
+export interface DepositRate {
+  tenor: string;
+  rate: string;
+}
+
+export interface ExchangeRate {
+  currency: string;
+  buy: string;
+  sell: string;
+}
+
+export type InfoPanelType =
+  | 'media'
+  | 'product_rates'
+  | 'deposit_rates'
+  | 'exchange_rates'
+  | 'rotate';
+
 export interface TVDisplayConfig {
   layout: 'layout1' | 'layout2' | 'layout3' | 'layout4';
   showMedia: boolean;
@@ -41,6 +65,11 @@ export interface TVDisplayConfig {
   runningTextSpeed: 'slow' | 'medium' | 'fast';
   runningTextColor: string;
   runningTextBgColor: string;
+  infoPanelType: InfoPanelType;
+  infoPanelRotateInterval: number;
+  productRates: ProductRate[];
+  depositRates: DepositRate[];
+  exchangeRates: ExchangeRate[];
 }
 
 export interface PronunciationMapping {
@@ -117,6 +146,24 @@ const DEFAULT_TV_DISPLAY_CONFIG: TVDisplayConfig = {
   runningTextSpeed: 'medium',
   runningTextColor: '#ffffff',
   runningTextBgColor: '#f59e0b',
+  infoPanelType: 'media',
+  infoPanelRotateInterval: 10,
+  productRates: [
+    { name: 'Tabungan Simpeda', rate: '1.00%', note: 'p.a' },
+    { name: 'Giro', rate: '0.50%', note: 'p.a' },
+    { name: 'TabunganKu', rate: '0.25%', note: 'p.a' },
+  ],
+  depositRates: [
+    { tenor: '1 Bulan', rate: '3.25%' },
+    { tenor: '3 Bulan', rate: '3.50%' },
+    { tenor: '6 Bulan', rate: '3.75%' },
+    { tenor: '12 Bulan', rate: '4.00%' },
+  ],
+  exchangeRates: [
+    { currency: 'USD', buy: '15.800', sell: '16.000' },
+    { currency: 'SGD', buy: '11.700', sell: '11.900' },
+    { currency: 'EUR', buy: '17.100', sell: '17.300' },
+  ],
 };
 
 export const getQueueState = (): QueueState => {

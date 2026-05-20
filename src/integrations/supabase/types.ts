@@ -125,11 +125,16 @@ export type Database = {
       tv_display_config: {
         Row: {
           created_at: string
+          deposit_rates: Json
+          exchange_rates: Json
           id: string
+          info_panel_rotate_interval: number
+          info_panel_type: string
           layout: string
           media_mode: string
           media_type: string
           media_url: string | null
+          product_rates: Json
           running_text: string | null
           running_text_bg_color: string
           running_text_color: string
@@ -143,11 +148,16 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deposit_rates?: Json
+          exchange_rates?: Json
           id?: string
+          info_panel_rotate_interval?: number
+          info_panel_type?: string
           layout?: string
           media_mode?: string
           media_type?: string
           media_url?: string | null
+          product_rates?: Json
           running_text?: string | null
           running_text_bg_color?: string
           running_text_color?: string
@@ -161,11 +171,16 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deposit_rates?: Json
+          exchange_rates?: Json
           id?: string
+          info_panel_rotate_interval?: number
+          info_panel_type?: string
           layout?: string
           media_mode?: string
           media_type?: string
           media_url?: string | null
+          product_rates?: Json
           running_text?: string | null
           running_text_bg_color?: string
           running_text_color?: string
