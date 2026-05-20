@@ -11,6 +11,8 @@ import { Volume2, VolumeX, Maximize, Minimize, Loader2, WifiOff, Wifi, Monitor }
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import DisplayInfoPanel from '@/components/DisplayInfoPanel';
+import { RatesTable } from '@/components/DisplayInfoPanel';
+import { PiggyBank, TrendingUp } from 'lucide-react';
 
 const QueueDisplay = () => {
   const [searchParams] = useSearchParams();
@@ -800,12 +802,107 @@ const QueueDisplay = () => {
     </div>
   );
 
+  // Compact queue card for dashboard layout
+  const CompactQueueCard = ({ type, number, flash, status }: {
+    type: 'TELLER' | 'CS';
+    number: string;
+    flash: boolean;
+    status: QueueStatus;
+  }) => {
+    const isTeller = type === 'TELLER';
+    const statusBadge = getStatusBadge(status);
+    const bgClass = flash
+      ? (isTeller ? 'bg-gradient-to-br from-amber-400 to-amber-500' : 'bg-gradient-to-br from-blue-400 to-blue-500')
+      : (isTeller ? 'bg-gradient-to-br from-amber-500 to-amber-600' : 'bg-gradient-to-br from-blue-500 to-blue-600');
+    return (
+      <motion.div
+        className={`rounded-2xl ${bgClass} shadow-2xl h-full w-full flex flex-col justify-center items-center p-2 sm:p-3 overflow-hidden`}
+        animate={flash ? { scale: [1, 1.03, 1] } : {}}
+        transition={{ duration: 0.5, repeat: flash ? Infinity : 0 }}
+      >
+        <h2
+          className="font-bold text-white drop-shadow text-center leading-tight"
+          style={{ fontSize: 'clamp(0.7rem, 1.8vmin, 1.5rem)' }}
+        >
+          {isTeller ? 'TELLER' : 'CUSTOMER SERVICE'}
+        </h2>
+        <span
+          className={`mt-1 px-2 py-0.5 rounded-full text-white font-semibold ${statusBadge.bg}`}
+          style={{ fontSize: 'clamp(0.55rem, 1.2vmin, 0.95rem)' }}
+        >
+          {statusBadge.text}
+        </span>
+        <div
+          className="font-black text-white leading-none drop-shadow-xl mt-1"
+          style={{ fontSize: 'clamp(2.2rem, 9vmin, 7rem)' }}
+        >
+          {number}
+        </div>
+      </motion.div>
+    );
+  };
+
+  const Layout5 = () => (
+    <div className="flex flex-col gap-2 sm:gap-3 h-full">
+      {/* Top: Media + (Queues + Product rates) */}
+      <div className="flex-[2] min-h-0 flex gap-2 sm:gap-3">
+        {/* Media */}
+        <div className="flex-[3] min-w-0">
+          <MediaContent />
+        </div>
+        {/* Right column */}
+        <div className="flex-[2] min-w-0 flex flex-col gap-2 sm:gap-3">
+          {/* Queue numbers */}
+          <div className="flex gap-2 sm:gap-3" style={{ height: '38%' }}>
+            <div className="flex-1 min-w-0">
+              <CompactQueueCard
+                type="TELLER"
+                number={tellerNumber}
+                flash={flashTeller}
+                status={queueState?.teller_status || 'idle'}
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <CompactQueueCard
+                type="CS"
+                number={csNumber}
+                flash={flashCS}
+                status={queueState?.cs_status || 'idle'}
+              />
+            </div>
+          </div>
+          {/* Product rates */}
+          <div className="flex-1 min-h-0">
+            <RatesTable
+              title="Suku Bunga Produk"
+              icon={<PiggyBank />}
+              gradient="from-blue-600 to-blue-800"
+              headers={['Produk', 'Bunga', 'Ket.']}
+              rows={(tvConfig.productRates || []).map((r) => [r.name, r.rate, r.note || '-'])}
+            />
+          </div>
+        </div>
+      </div>
+      {/* Bottom: Deposit rates full width */}
+      <div className="flex-1 min-h-0">
+        <RatesTable
+          title="Suku Bunga Deposito"
+          icon={<TrendingUp />}
+          gradient="from-emerald-600 to-emerald-800"
+          headers={['Tenor', 'Bunga p.a']}
+          rows={(tvConfig.depositRates || []).map((r) => [r.tenor, r.rate])}
+        />
+      </div>
+    </div>
+  );
+
   const renderLayout = () => {
     switch (tvConfig.layout) {
       case 'layout1': return <Layout1 />;
       case 'layout2': return <Layout2 />;
       case 'layout3': return <Layout3 />;
       case 'layout4': return <Layout4 />;
+      case 'layout5': return <Layout5 />;
       default: return <Layout1 />;
     }
   };
