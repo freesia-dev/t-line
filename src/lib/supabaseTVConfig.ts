@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { TVDisplayConfig, SlideshowAnimation } from './queueStore';
+import { TVDisplayConfig, SlideshowAnimation, InfoPanelType, ProductRate, DepositRate, ExchangeRate } from './queueStore';
 
 interface TVConfigRow {
   id: string;
@@ -16,6 +16,11 @@ interface TVConfigRow {
   running_text_speed: string;
   running_text_color: string;
   running_text_bg_color: string;
+  info_panel_type: string;
+  info_panel_rotate_interval: number;
+  product_rates: ProductRate[] | null;
+  deposit_rates: DepositRate[] | null;
+  exchange_rates: ExchangeRate[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -34,6 +39,24 @@ const DEFAULT_TV_CONFIG: TVDisplayConfig = {
   runningTextSpeed: 'medium',
   runningTextColor: '#ffffff',
   runningTextBgColor: '#f59e0b',
+  infoPanelType: 'media',
+  infoPanelRotateInterval: 10,
+  productRates: [
+    { name: 'Tabungan Simpeda', rate: '1.00%', note: 'p.a' },
+    { name: 'Giro', rate: '0.50%', note: 'p.a' },
+    { name: 'TabunganKu', rate: '0.25%', note: 'p.a' },
+  ],
+  depositRates: [
+    { tenor: '1 Bulan', rate: '3.25%' },
+    { tenor: '3 Bulan', rate: '3.50%' },
+    { tenor: '6 Bulan', rate: '3.75%' },
+    { tenor: '12 Bulan', rate: '4.00%' },
+  ],
+  exchangeRates: [
+    { currency: 'USD', buy: '15.800', sell: '16.000' },
+    { currency: 'SGD', buy: '11.700', sell: '11.900' },
+    { currency: 'EUR', buy: '17.100', sell: '17.300' },
+  ],
 };
 
 // Convert database row to TVDisplayConfig
@@ -51,6 +74,11 @@ const rowToConfig = (row: TVConfigRow): TVDisplayConfig => ({
   runningTextSpeed: row.running_text_speed as 'slow' | 'medium' | 'fast',
   runningTextColor: row.running_text_color,
   runningTextBgColor: row.running_text_bg_color,
+  infoPanelType: (row.info_panel_type as InfoPanelType) || 'media',
+  infoPanelRotateInterval: row.info_panel_rotate_interval || 10,
+  productRates: (row.product_rates as ProductRate[]) || [],
+  depositRates: (row.deposit_rates as DepositRate[]) || [],
+  exchangeRates: (row.exchange_rates as ExchangeRate[]) || [],
 });
 
 // Convert TVDisplayConfig to database row format
@@ -68,6 +96,11 @@ const configToRow = (config: TVDisplayConfig) => ({
   running_text_speed: config.runningTextSpeed,
   running_text_color: config.runningTextColor,
   running_text_bg_color: config.runningTextBgColor,
+  info_panel_type: config.infoPanelType,
+  info_panel_rotate_interval: config.infoPanelRotateInterval,
+  product_rates: config.productRates,
+  deposit_rates: config.depositRates,
+  exchange_rates: config.exchangeRates,
   updated_at: new Date().toISOString(),
 });
 
