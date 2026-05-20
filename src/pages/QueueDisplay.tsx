@@ -839,40 +839,44 @@ const QueueDisplay = () => {
       : (isTeller ? 'bg-gradient-to-br from-amber-400 via-amber-600 to-orange-700' : 'bg-gradient-to-br from-blue-500 via-blue-700 to-indigo-800');
     return (
       <motion.div
-        className={`relative rounded-2xl ${bgClass} shadow-2xl h-full w-full flex flex-col justify-center items-center p-2 sm:p-3 overflow-hidden ring-1 ring-white/20`}
+        className={`relative rounded-2xl ${bgClass} shadow-2xl h-full w-full flex flex-col justify-between items-center px-2 py-3 sm:py-4 overflow-hidden ring-1 ring-white/20`}
         animate={flash ? { scale: [1, 1.03, 1] } : {}}
         transition={{ duration: 0.5, repeat: flash ? Infinity : 0 }}
       >
-        {/* Decorative silhouette: big letter + arcs */}
+        {/* Decorative silhouette: big letter in bottom-right, clipped */}
         <div
-          className="absolute -right-4 -top-4 font-black text-white/10 leading-none select-none pointer-events-none"
-          style={{ fontSize: 'clamp(5rem, 22vmin, 16rem)' }}
+          className="absolute right-[-1rem] bottom-[-2rem] font-black text-white/10 leading-none select-none pointer-events-none"
+          style={{ fontSize: 'clamp(4rem, 16vmin, 12rem)' }}
           aria-hidden
         >
           {isTeller ? 'A' : 'B'}
         </div>
-        <svg className="absolute -left-10 -bottom-10 w-2/3 h-2/3 text-white/10 pointer-events-none" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-          <circle cx="20" cy="80" r="60" />
-          <circle cx="20" cy="80" r="40" />
-          <circle cx="20" cy="80" r="20" />
+        <svg className="absolute -left-8 -bottom-8 w-1/2 h-1/2 text-white/10 pointer-events-none" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+          <circle cx="20" cy="80" r="50" />
+          <circle cx="20" cy="80" r="32" />
         </svg>
 
-        <div className="relative flex flex-col items-center w-full">
+        {/* Header: label + status */}
+        <div className="relative flex flex-col items-center w-full gap-1 shrink-0">
           <h2
-            className="font-bold text-white drop-shadow text-center leading-tight tracking-wide"
-            style={{ fontSize: 'clamp(0.7rem, 1.8vmin, 1.5rem)' }}
+            className="font-bold text-white drop-shadow text-center leading-none tracking-wide whitespace-nowrap"
+            style={{ fontSize: 'clamp(0.65rem, 1.6vmin, 1.35rem)' }}
           >
             {isTeller ? 'TELLER' : 'CUSTOMER SERVICE'}
           </h2>
           <span
-            className={`mt-1 px-3 py-0.5 rounded-full text-white font-semibold shadow ${statusBadge.bg}`}
-            style={{ fontSize: 'clamp(0.55rem, 1.2vmin, 0.95rem)' }}
+            className={`px-3 py-0.5 rounded-full text-white font-semibold shadow ${statusBadge.bg} leading-none whitespace-nowrap`}
+            style={{ fontSize: 'clamp(0.55rem, 1.1vmin, 0.9rem)' }}
           >
             {statusBadge.text}
           </span>
+        </div>
+
+        {/* Number — centered, fills remaining space */}
+        <div className="relative flex-1 min-h-0 w-full flex items-center justify-center">
           <div
-            className="font-black text-white leading-none drop-shadow-xl mt-2 tabular-nums"
-            style={{ fontSize: 'clamp(2.5rem, 11vmin, 8rem)' }}
+            className="font-black text-white leading-none drop-shadow-xl tabular-nums"
+            style={{ fontSize: 'clamp(2.2rem, 9.5vmin, 7rem)' }}
           >
             {number}
           </div>
