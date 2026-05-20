@@ -428,6 +428,255 @@ const Konfigurasi = () => {
 
                   {/* Running Text Settings */}
                   <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+                  </div>
+
+                  {/* Info Panel Settings */}
+                  <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+                    <div className="space-y-2">
+                      <Label>Konten Panel Info</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Pilih apa yang ditampilkan di area panel (samping/bawah antrian) pada display.
+                      </p>
+                      <Select
+                        value={tvConfig.infoPanelType || 'media'}
+                        onValueChange={(value) =>
+                          setTVConfig({ ...tvConfig, infoPanelType: value as TVDisplayConfig['infoPanelType'] })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="media">Media (Gambar/Video/Slideshow)</SelectItem>
+                          <SelectItem value="product_rates">Tabel Suku Bunga Produk</SelectItem>
+                          <SelectItem value="deposit_rates">Tabel Suku Bunga Deposito</SelectItem>
+                          <SelectItem value="exchange_rates">Tabel Kurs Mata Uang</SelectItem>
+                          <SelectItem value="rotate">Rotasi Otomatis (semua aktif)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {tvConfig.infoPanelType === 'rotate' && (
+                      <div className="space-y-2">
+                        <Label>Interval Rotasi (detik)</Label>
+                        <Select
+                          value={String(tvConfig.infoPanelRotateInterval || 10)}
+                          onValueChange={(value) =>
+                            setTVConfig({ ...tvConfig, infoPanelRotateInterval: parseInt(value) })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="5">5 detik</SelectItem>
+                            <SelectItem value="10">10 detik</SelectItem>
+                            <SelectItem value="15">15 detik</SelectItem>
+                            <SelectItem value="20">20 detik</SelectItem>
+                            <SelectItem value="30">30 detik</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {/* Product Rates Editor */}
+                    <div className="space-y-2 pt-2 border-t">
+                      <div className="flex items-center justify-between">
+                        <Label>Suku Bunga Produk</Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          onClick={() =>
+                            setTVConfig({
+                              ...tvConfig,
+                              productRates: [...(tvConfig.productRates || []), { name: '', rate: '', note: '' }],
+                            })
+                          }
+                        >
+                          <Plus size={16} /> Tambah
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-[1.5fr_1fr_1fr_40px] gap-2 text-xs font-medium text-muted-foreground">
+                        <span>Nama Produk</span><span>Bunga</span><span>Catatan</span><span></span>
+                      </div>
+                      {(tvConfig.productRates || []).map((row, idx) => (
+                        <div key={idx} className="grid grid-cols-[1.5fr_1fr_1fr_40px] gap-2">
+                          <Input
+                            value={row.name}
+                            placeholder="Tabungan Simpeda"
+                            onChange={(e) => {
+                              const arr = [...(tvConfig.productRates || [])];
+                              arr[idx] = { ...row, name: e.target.value };
+                              setTVConfig({ ...tvConfig, productRates: arr });
+                            }}
+                          />
+                          <Input
+                            value={row.rate}
+                            placeholder="1.00%"
+                            onChange={(e) => {
+                              const arr = [...(tvConfig.productRates || [])];
+                              arr[idx] = { ...row, rate: e.target.value };
+                              setTVConfig({ ...tvConfig, productRates: arr });
+                            }}
+                          />
+                          <Input
+                            value={row.note || ''}
+                            placeholder="p.a"
+                            onChange={(e) => {
+                              const arr = [...(tvConfig.productRates || [])];
+                              arr[idx] = { ...row, note: e.target.value };
+                              setTVConfig({ ...tvConfig, productRates: arr });
+                            }}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive"
+                            onClick={() =>
+                              setTVConfig({
+                                ...tvConfig,
+                                productRates: (tvConfig.productRates || []).filter((_, i) => i !== idx),
+                              })
+                            }
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Deposit Rates Editor */}
+                    <div className="space-y-2 pt-2 border-t">
+                      <div className="flex items-center justify-between">
+                        <Label>Suku Bunga Deposito</Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          onClick={() =>
+                            setTVConfig({
+                              ...tvConfig,
+                              depositRates: [...(tvConfig.depositRates || []), { tenor: '', rate: '' }],
+                            })
+                          }
+                        >
+                          <Plus size={16} /> Tambah
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-[1.5fr_1fr_40px] gap-2 text-xs font-medium text-muted-foreground">
+                        <span>Tenor</span><span>Bunga</span><span></span>
+                      </div>
+                      {(tvConfig.depositRates || []).map((row, idx) => (
+                        <div key={idx} className="grid grid-cols-[1.5fr_1fr_40px] gap-2">
+                          <Input
+                            value={row.tenor}
+                            placeholder="3 Bulan"
+                            onChange={(e) => {
+                              const arr = [...(tvConfig.depositRates || [])];
+                              arr[idx] = { ...row, tenor: e.target.value };
+                              setTVConfig({ ...tvConfig, depositRates: arr });
+                            }}
+                          />
+                          <Input
+                            value={row.rate}
+                            placeholder="3.50%"
+                            onChange={(e) => {
+                              const arr = [...(tvConfig.depositRates || [])];
+                              arr[idx] = { ...row, rate: e.target.value };
+                              setTVConfig({ ...tvConfig, depositRates: arr });
+                            }}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive"
+                            onClick={() =>
+                              setTVConfig({
+                                ...tvConfig,
+                                depositRates: (tvConfig.depositRates || []).filter((_, i) => i !== idx),
+                              })
+                            }
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Exchange Rates Editor */}
+                    <div className="space-y-2 pt-2 border-t">
+                      <div className="flex items-center justify-between">
+                        <Label>Kurs Mata Uang</Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          onClick={() =>
+                            setTVConfig({
+                              ...tvConfig,
+                              exchangeRates: [...(tvConfig.exchangeRates || []), { currency: '', buy: '', sell: '' }],
+                            })
+                          }
+                        >
+                          <Plus size={16} /> Tambah
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-[1fr_1fr_1fr_40px] gap-2 text-xs font-medium text-muted-foreground">
+                        <span>Mata Uang</span><span>Beli</span><span>Jual</span><span></span>
+                      </div>
+                      {(tvConfig.exchangeRates || []).map((row, idx) => (
+                        <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_40px] gap-2">
+                          <Input
+                            value={row.currency}
+                            placeholder="USD"
+                            onChange={(e) => {
+                              const arr = [...(tvConfig.exchangeRates || [])];
+                              arr[idx] = { ...row, currency: e.target.value };
+                              setTVConfig({ ...tvConfig, exchangeRates: arr });
+                            }}
+                          />
+                          <Input
+                            value={row.buy}
+                            placeholder="15.800"
+                            onChange={(e) => {
+                              const arr = [...(tvConfig.exchangeRates || [])];
+                              arr[idx] = { ...row, buy: e.target.value };
+                              setTVConfig({ ...tvConfig, exchangeRates: arr });
+                            }}
+                          />
+                          <Input
+                            value={row.sell}
+                            placeholder="16.000"
+                            onChange={(e) => {
+                              const arr = [...(tvConfig.exchangeRates || [])];
+                              arr[idx] = { ...row, sell: e.target.value };
+                              setTVConfig({ ...tvConfig, exchangeRates: arr });
+                            }}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive"
+                            onClick={() =>
+                              setTVConfig({
+                                ...tvConfig,
+                                exchangeRates: (tvConfig.exchangeRates || []).filter((_, i) => i !== idx),
+                              })
+                            }
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      ))}
+                      <p className="text-xs text-muted-foreground">
+                        Tambah baris untuk setiap mata uang (USD, SGD, EUR, dll). Tidak terbatas jumlahnya.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Running Text Settings (continued) */}
+                  <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
                     <div className="flex items-center justify-between">
                       <div>
                         <Label htmlFor="showRunningText">Running Text</Label>
