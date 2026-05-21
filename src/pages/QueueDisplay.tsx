@@ -14,6 +14,121 @@ import DisplayInfoPanel from '@/components/DisplayInfoPanel';
 import { RatesTable } from '@/components/DisplayInfoPanel';
 import { PiggyBank, TrendingUp, Clock } from 'lucide-react';
 
+// Rotating hero card for product rates — shows one product at a time, big & legible.
+const ProductHeroRotator = ({
+  rates,
+  intervalMs = 5000,
+}: {
+  rates: { name: string; rate: string; note?: string }[];
+  intervalMs?: number;
+}) => {
+  const [idx, setIdx] = useState(0);
+  const count = rates.length;
+
+  useEffect(() => {
+    if (count <= 1) return;
+    const id = setInterval(() => setIdx((i) => (i + 1) % count), intervalMs);
+    return () => clearInterval(id);
+  }, [count, intervalMs]);
+
+  useEffect(() => {
+    if (idx >= count && count > 0) setIdx(0);
+  }, [idx, count]);
+
+  const current = count > 0 ? rates[idx % count] : null;
+
+  return (
+    <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 shadow-2xl flex flex-col overflow-hidden">
+      {/* Decorative silhouettes */}
+      <svg
+        className="absolute -right-10 -bottom-10 w-2/3 h-2/3 text-white/5 pointer-events-none"
+        viewBox="0 0 200 200"
+        fill="currentColor"
+        aria-hidden
+      >
+        <circle cx="140" cy="140" r="110" />
+        <circle cx="140" cy="140" r="70" className="text-white/5" />
+        <circle cx="140" cy="140" r="35" className="text-white/5" />
+      </svg>
+      <PiggyBank
+        className="absolute -left-4 -top-4 text-white/5 pointer-events-none"
+        style={{ width: 'clamp(4rem, 14vmin, 10rem)', height: 'clamp(4rem, 14vmin, 10rem)' }}
+        aria-hidden
+      />
+
+      {/* Header */}
+      <div className="relative flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 bg-black/25 backdrop-blur-sm text-white shrink-0 border-b border-white/10">
+        <PiggyBank style={{ width: 'clamp(1rem, 2.4vmin, 2rem)', height: 'clamp(1rem, 2.4vmin, 2rem)' }} />
+        <h3
+          className="font-bold uppercase tracking-wide drop-shadow"
+          style={{ fontSize: 'clamp(0.875rem, 2.2vmin, 1.75rem)', fontFamily: "'Inter', system-ui, sans-serif", letterSpacing: '0.08em' }}
+        >
+          Suku Bunga Produk
+        </h3>
+        {count > 1 && (
+          <div className="ml-auto flex gap-1.5">
+            {rates.map((_, i) => (
+              <div
+                key={i}
+                className={`rounded-full transition-all duration-300 ${i === idx ? 'bg-white scale-110' : 'bg-white/40'}`}
+                style={{ width: 'clamp(0.35rem, 0.8vmin, 0.6rem)', height: 'clamp(0.35rem, 0.8vmin, 0.6rem)' }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Hero content */}
+      <div className="relative flex-1 min-h-0 flex items-center justify-center p-3 sm:p-5">
+        {!current ? (
+          <div className="text-white/70" style={{ fontSize: 'clamp(0.85rem, 1.8vmin, 1.25rem)' }}>
+            Belum ada data produk
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.96 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="relative w-full h-full flex flex-col items-center justify-center text-center text-white gap-2"
+            >
+              <div
+                className="font-semibold uppercase tracking-[0.15em] text-white/80 leading-tight px-2"
+                style={{
+                  fontSize: 'clamp(1rem, 3.2vmin, 2.6rem)',
+                  fontFamily: "'Inter', system-ui, sans-serif",
+                }}
+              >
+                {current.name}
+              </div>
+              <div
+                className="font-black text-white leading-none drop-shadow-2xl tabular-nums"
+                style={{
+                  fontSize: 'clamp(2.5rem, 11vmin, 8rem)',
+                  fontFamily: "'Inter', system-ui, sans-serif",
+                  letterSpacing: '-0.03em',
+                }}
+              >
+                {current.rate}
+              </div>
+              {current.note && current.note !== '-' && (
+                <div
+                  className="font-medium text-white/75 italic"
+                  style={{ fontSize: 'clamp(0.85rem, 2vmin, 1.5rem)' }}
+                >
+                  {current.note}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const QueueDisplay = () => {
   const [searchParams] = useSearchParams();
   const isKioskMode = searchParams.get('kiosk') === 'true';
