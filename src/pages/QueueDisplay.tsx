@@ -828,7 +828,7 @@ const QueueDisplay = () => {
 
   // Wraps MediaContent + interest-rate / FX panels with optional rotation
   const InfoArea = () => (
-    <DisplayInfoPanel config={tvConfig} renderMedia={() => {MediaContent()}} />
+    <DisplayInfoPanel config={tvConfig} renderMedia={() => MediaContent()} />
   );
 
   // Layout Components with responsive gap
