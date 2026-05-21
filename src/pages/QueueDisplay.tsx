@@ -17,7 +17,7 @@ import { PiggyBank, TrendingUp, Clock } from 'lucide-react';
 // Rotating hero card for product rates — shows one product at a time, big & legible.
 const ProductHeroRotator = ({
   rates,
-  intervalMs = 5000,
+  intervalMs = 3000,
 }: {
   rates: { name: string; rate: string; note?: string }[];
   intervalMs?: number;
@@ -27,7 +27,8 @@ const ProductHeroRotator = ({
 
   useEffect(() => {
     if (count <= 1) return;
-    const id = setInterval(() => setIdx((i) => (i + 1) % count), intervalMs);
+    const productIntervalMs = Math.max(1000, intervalMs);
+    const id = setInterval(() => setIdx((i) => (i + 1) % count), productIntervalMs);
     return () => clearInterval(id);
   }, [count, intervalMs]);
 
@@ -1100,7 +1101,7 @@ const QueueDisplay = () => {
           <div className="flex-[5] min-h-0">
             <ProductHeroRotator
               rates={tvConfig.productRates || []}
-              intervalMs={(tvConfig.infoPanelRotateInterval || 6) * 1000}
+              intervalMs={3000}
             />
           </div>
         </div>
