@@ -1115,12 +1115,12 @@ const QueueDisplay = () => {
 
   const renderLayout = () => {
     switch (tvConfig.layout) {
-      case 'layout1': return <Layout1 />;
-      case 'layout2': return <Layout2 />;
-      case 'layout3': return <Layout3 />;
-      case 'layout4': return <Layout4 />;
-      case 'layout5': return <Layout5 />;
-      default: return <Layout1 />;
+      case 'layout1': return Layout1();
+      case 'layout2': return Layout2();
+      case 'layout3': return Layout3();
+      case 'layout4': return Layout4();
+      case 'layout5': return Layout5();
+      default: return Layout1();
     }
   };
 
