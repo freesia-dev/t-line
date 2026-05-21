@@ -1099,12 +1099,9 @@ const QueueDisplay = () => {
           </div>
           {/* Product rates — more breathing room */}
           <div className="flex-[5] min-h-0">
-            <RatesTable
-              title="Suku Bunga Produk"
-              icon={<PiggyBank />}
-              gradient="from-blue-600 via-blue-700 to-indigo-800"
-              headers={['Produk', 'Bunga', 'Ket.']}
-              rows={(tvConfig.productRates || []).map((r) => [r.name, r.rate, r.note || '-'])}
+            <ProductHeroRotator
+              rates={tvConfig.productRates || []}
+              intervalMs={(tvConfig.infoPanelRotateInterval || 6) * 1000}
             />
           </div>
         </div>
