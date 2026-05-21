@@ -44,14 +44,14 @@ const DisplayInfoPanel = ({ config, renderMedia }: InfoPanelProps) => {
     : (config.infoPanelType === 'rotate' ? activePanels[0] || 'media' : config.infoPanelType);
 
   return (
-    <div className="w-full h-full relative">
-      <AnimatePresence mode="wait">
+    <div className="w-full h-full relative overflow-hidden">
+      <AnimatePresence initial={false}>
         <motion.div
           key={current}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 1.1, ease: 'easeInOut' }}
           className="absolute inset-0"
         >
           {current === 'media' && (
