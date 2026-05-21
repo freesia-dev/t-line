@@ -452,28 +452,33 @@ const Konfigurasi = () => {
                       </Select>
                     </div>
 
-                    {tvConfig.infoPanelType === 'rotate' && (
-                      <div className="space-y-2">
-                        <Label>Interval Rotasi (detik)</Label>
-                        <Select
-                          value={String(tvConfig.infoPanelRotateInterval || 10)}
-                          onValueChange={(value) =>
-                            setTVConfig({ ...tvConfig, infoPanelRotateInterval: parseInt(value) })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="5">5 detik</SelectItem>
-                            <SelectItem value="10">10 detik</SelectItem>
-                            <SelectItem value="15">15 detik</SelectItem>
-                            <SelectItem value="20">20 detik</SelectItem>
-                            <SelectItem value="30">30 detik</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
+                    <div className="space-y-2">
+                      <Label>Interval Pergantian Konten (detik)</Label>
+                      <Select
+                        value={String(tvConfig.infoPanelRotateInterval || 8)}
+                        onValueChange={(value) =>
+                          setTVConfig({ ...tvConfig, infoPanelRotateInterval: parseInt(value) })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="4">4 detik</SelectItem>
+                          <SelectItem value="6">6 detik</SelectItem>
+                          <SelectItem value="8">8 detik</SelectItem>
+                          <SelectItem value="10">10 detik</SelectItem>
+                          <SelectItem value="12">12 detik</SelectItem>
+                          <SelectItem value="15">15 detik</SelectItem>
+                          <SelectItem value="20">20 detik</SelectItem>
+                          <SelectItem value="30">30 detik</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Berlaku untuk rotasi panel info & pergantian hero suku bunga produk di layout TV.
+                        Rekomendasi 8–12 detik agar nyaman dibaca di TV 43".
+                      </p>
+                    </div>
 
                     {/* Product Rates Editor */}
                     <div className="space-y-2 pt-2 border-t">
