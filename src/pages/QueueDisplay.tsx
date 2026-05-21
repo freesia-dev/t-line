@@ -786,7 +786,7 @@ const QueueDisplay = () => {
 
       return (
         <div className="w-full h-full relative rounded-xl overflow-hidden bg-white">
-          <AnimatePresence mode="wait">
+          <AnimatePresence initial={false}>
             <motion.img
               key={currentSlide}
               src={tvConfig.slideshowImages[currentSlide]}
@@ -795,9 +795,9 @@ const QueueDisplay = () => {
               initial={variants.initial}
               animate={variants.animate}
               exit={variants.exit}
-              transition={{ 
-                duration: 0.8, 
-                ease: [0.4, 0, 0.2, 1] // Smooth easing
+              transition={{
+                duration: 1.2,
+                ease: [0.4, 0, 0.2, 1],
               }}
             />
           </AnimatePresence>
