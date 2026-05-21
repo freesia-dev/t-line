@@ -833,7 +833,7 @@ const QueueDisplay = () => {
 
   // Wraps MediaContent + interest-rate / FX panels with optional rotation
   const InfoArea = () => (
-    <DisplayInfoPanel config={tvConfig} renderMedia={() => <MediaContent />} />
+    <DisplayInfoPanel config={tvConfig} renderMedia={() => {MediaContent()}} />
   );
 
   // Layout Components with responsive gap
@@ -858,7 +858,7 @@ const QueueDisplay = () => {
         />
       </div>
       <div className="w-1/2">
-        <InfoArea />
+        {InfoArea()}
       </div>
     </div>
   );
@@ -884,7 +884,7 @@ const QueueDisplay = () => {
         />
       </div>
       <div className="h-1/3">
-        <InfoArea />
+        {InfoArea()}
       </div>
     </div>
   );
@@ -892,7 +892,7 @@ const QueueDisplay = () => {
   const Layout3 = () => (
     <div className="flex gap-2 sm:gap-4 h-full">
       <div className="w-1/2">
-        <InfoArea />
+        {InfoArea()}
       </div>
       <div className="flex-1 flex flex-col gap-2 sm:gap-4">
         <QueueCard 
@@ -1074,7 +1074,7 @@ const QueueDisplay = () => {
       <div className="flex-[5] min-h-0 flex gap-2 sm:gap-3">
         {/* Media (hero) */}
         <div className="flex-[5] min-w-0">
-          <MediaContent />
+          {MediaContent()}
         </div>
         {/* Right column: queues + product rates */}
         <div className="flex-[4] min-w-0 flex flex-col gap-2 sm:gap-3">
@@ -1108,7 +1108,7 @@ const QueueDisplay = () => {
       </div>
       {/* Bottom: Deposit rates as hero cards — one per tenor */}
       <div className="flex-[3] min-h-0">
-        <DepositHeroStrip rates={tvConfig.depositRates || []} />
+        {DepositHeroStrip({ rates: tvConfig.depositRates || [] })}
       </div>
     </div>
   );
