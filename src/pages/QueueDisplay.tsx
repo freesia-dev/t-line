@@ -78,52 +78,51 @@ const ProductHeroRotator = ({
         )}
       </div>
 
-      {/* Hero content */}
-      <div className="relative flex-1 min-h-0 flex items-center justify-center p-3 sm:p-5 overflow-hidden">
-        {!current ? (
-          <div className="text-white/70" style={{ fontSize: 'clamp(0.85rem, 1.8vmin, 1.25rem)' }}>
+      {/* Hero content — render every product stacked, crossfade by opacity. */}
+      <div className="relative flex-1 min-h-0 overflow-hidden">
+        {count === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center text-white/70" style={{ fontSize: 'clamp(0.85rem, 1.8vmin, 1.25rem)' }}>
             Belum ada data produk
           </div>
-        ) : (
-          <AnimatePresence initial={false}>
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.1, ease: 'easeInOut' }}
-              className="absolute inset-0 flex flex-col items-center justify-center text-center text-white gap-2 p-3 sm:p-5"
-            >
-              <div
-                className="font-semibold uppercase tracking-[0.15em] text-white/80 leading-tight px-2"
-                style={{
-                  fontSize: 'clamp(1rem, 3.2vmin, 2.6rem)',
-                  fontFamily: "'Inter', system-ui, sans-serif",
-                }}
-              >
-                {current.name}
-              </div>
-              <div
-                className="font-black text-white leading-none drop-shadow-2xl tabular-nums"
-                style={{
-                  fontSize: 'clamp(2.5rem, 11vmin, 8rem)',
-                  fontFamily: "'Inter', system-ui, sans-serif",
-                  letterSpacing: '-0.03em',
-                }}
-              >
-                {current.rate}
-              </div>
-              {current.note && current.note !== '-' && (
-                <div
-                  className="font-medium text-white/75 italic"
-                  style={{ fontSize: 'clamp(0.85rem, 2vmin, 1.5rem)' }}
-                >
-                  {current.note}
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
         )}
+        {rates.map((p, i) => (
+          <motion.div
+            key={i}
+            initial={false}
+            animate={{ opacity: i === idx ? 1 : 0 }}
+            transition={{ duration: 0.9, ease: 'easeInOut' }}
+            className="absolute inset-0 flex flex-col items-center justify-center text-center text-white gap-2 p-3 sm:p-5"
+            style={{ pointerEvents: i === idx ? 'auto' : 'none' }}
+          >
+            <div
+              className="font-semibold uppercase tracking-[0.15em] text-white/80 leading-tight px-2"
+              style={{
+                fontSize: 'clamp(1rem, 3.2vmin, 2.6rem)',
+                fontFamily: "'Inter', system-ui, sans-serif",
+              }}
+            >
+              {p.name}
+            </div>
+            <div
+              className="font-black text-white leading-none drop-shadow-2xl tabular-nums"
+              style={{
+                fontSize: 'clamp(2.5rem, 11vmin, 8rem)',
+                fontFamily: "'Inter', system-ui, sans-serif",
+                letterSpacing: '-0.03em',
+              }}
+            >
+              {p.rate}
+            </div>
+            {p.note && p.note !== '-' && (
+              <div
+                className="font-medium text-white/75 italic"
+                style={{ fontSize: 'clamp(0.85rem, 2vmin, 1.5rem)' }}
+              >
+                {p.note}
+              </div>
+            )}
+          </motion.div>
+        ))}
       </div>
     </div>
   );
