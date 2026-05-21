@@ -79,20 +79,20 @@ const ProductHeroRotator = ({
       </div>
 
       {/* Hero content */}
-      <div className="relative flex-1 min-h-0 flex items-center justify-center p-3 sm:p-5">
+      <div className="relative flex-1 min-h-0 flex items-center justify-center p-3 sm:p-5 overflow-hidden">
         {!current ? (
           <div className="text-white/70" style={{ fontSize: 'clamp(0.85rem, 1.8vmin, 1.25rem)' }}>
             Belum ada data produk
           </div>
         ) : (
-          <AnimatePresence mode="wait">
+          <AnimatePresence initial={false}>
             <motion.div
               key={idx}
-              initial={{ opacity: 0, y: 20, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.96 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-              className="relative w-full h-full flex flex-col items-center justify-center text-center text-white gap-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.1, ease: 'easeInOut' }}
+              className="absolute inset-0 flex flex-col items-center justify-center text-center text-white gap-2 p-3 sm:p-5"
             >
               <div
                 className="font-semibold uppercase tracking-[0.15em] text-white/80 leading-tight px-2"
