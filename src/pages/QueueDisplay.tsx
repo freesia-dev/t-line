@@ -22,21 +22,19 @@ const ProductHeroRotator = ({
   rates: { name: string; rate: string; note?: string }[];
   intervalMs?: number;
 }) => {
-  const [idx, setIdx] = useState(0);
   const count = rates.length;
+  const safeIntervalMs = Math.max(1000, intervalMs);
+  const [now, setNow] = useState(() => Date.now());
+  const activeIdx = count > 0 ? Math.floor(now / safeIntervalMs) % count : 0;
 
   useEffect(() => {
-    if (count <= 1) return;
-    const productIntervalMs = Math.max(1000, intervalMs);
-    const id = setInterval(() => setIdx((i) => (i + 1) % count), productIntervalMs);
+    if (count <= 1) {
+      setNow(Date.now());
+      return;
+    }
+    const id = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(id);
-  }, [count, intervalMs]);
-
-  useEffect(() => {
-    if (idx >= count && count > 0) setIdx(0);
-  }, [idx, count]);
-
-  const current = count > 0 ? rates[idx % count] : null;
+  }, [count]);
 
   return (
     <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 shadow-2xl flex flex-col overflow-hidden">
@@ -71,7 +69,7 @@ const ProductHeroRotator = ({
             {rates.map((_, i) => (
               <div
                 key={i}
-                className={`rounded-full transition-all duration-300 ${i === idx ? 'bg-white scale-110' : 'bg-white/40'}`}
+                className={`rounded-full transition-all duration-300 ${i === activeIdx ? 'bg-white scale-110' : 'bg-white/40'}`}
                 style={{ width: 'clamp(0.35rem, 0.8vmin, 0.6rem)', height: 'clamp(0.35rem, 0.8vmin, 0.6rem)' }}
               />
             ))}
@@ -87,13 +85,10 @@ const ProductHeroRotator = ({
           </div>
         )}
         {rates.map((p, i) => (
-          <motion.div
+          <div
             key={i}
-            initial={false}
-            animate={{ opacity: i === idx ? 1 : 0 }}
-            transition={{ duration: 0.9, ease: 'easeInOut' }}
-            className="absolute inset-0 flex flex-col items-center justify-center text-center text-white gap-2 p-3 sm:p-5"
-            style={{ pointerEvents: i === idx ? 'auto' : 'none' }}
+            className={`absolute inset-0 flex flex-col items-center justify-center text-center text-white gap-2 p-3 sm:p-5 transition-opacity duration-1000 ease-in-out ${i === activeIdx ? 'opacity-100' : 'opacity-0'}`}
+            style={{ pointerEvents: i === activeIdx ? 'auto' : 'none' }}
           >
             <div
               className="font-semibold uppercase tracking-[0.15em] text-white/80 leading-tight px-2"
@@ -122,7 +117,7 @@ const ProductHeroRotator = ({
                 {p.note}
               </div>
             )}
-          </motion.div>
+          </div>
         ))}
       </div>
     </div>
@@ -833,7 +828,7 @@ const QueueDisplay = () => {
 
   // Wraps MediaContent + interest-rate / FX panels with optional rotation
   const InfoArea = () => (
-    <DisplayInfoPanel config={tvConfig} renderMedia={() => <MediaContent />} />
+    <DisplayInfoPanel config={tvConfig} renderMedia={() => MediaContent()} />
   );
 
   // Layout Components with responsive gap
@@ -858,7 +853,7 @@ const QueueDisplay = () => {
         />
       </div>
       <div className="w-1/2">
-        <InfoArea />
+        {InfoArea()}
       </div>
     </div>
   );
@@ -884,7 +879,7 @@ const QueueDisplay = () => {
         />
       </div>
       <div className="h-1/3">
-        <InfoArea />
+        {InfoArea()}
       </div>
     </div>
   );
@@ -892,7 +887,7 @@ const QueueDisplay = () => {
   const Layout3 = () => (
     <div className="flex gap-2 sm:gap-4 h-full">
       <div className="w-1/2">
-        <InfoArea />
+        {InfoArea()}
       </div>
       <div className="flex-1 flex flex-col gap-2 sm:gap-4">
         <QueueCard 
@@ -1074,7 +1069,7 @@ const QueueDisplay = () => {
       <div className="flex-[5] min-h-0 flex gap-2 sm:gap-3">
         {/* Media (hero) */}
         <div className="flex-[5] min-w-0">
-          <MediaContent />
+          {MediaContent()}
         </div>
         {/* Right column: queues + product rates */}
         <div className="flex-[4] min-w-0 flex flex-col gap-2 sm:gap-3">
@@ -1108,19 +1103,19 @@ const QueueDisplay = () => {
       </div>
       {/* Bottom: Deposit rates as hero cards — one per tenor */}
       <div className="flex-[3] min-h-0">
-        <DepositHeroStrip rates={tvConfig.depositRates || []} />
+        {DepositHeroStrip({ rates: tvConfig.depositRates || [] })}
       </div>
     </div>
   );
 
   const renderLayout = () => {
     switch (tvConfig.layout) {
-      case 'layout1': return <Layout1 />;
-      case 'layout2': return <Layout2 />;
-      case 'layout3': return <Layout3 />;
-      case 'layout4': return <Layout4 />;
-      case 'layout5': return <Layout5 />;
-      default: return <Layout1 />;
+      case 'layout1': return Layout1();
+      case 'layout2': return Layout2();
+      case 'layout3': return Layout3();
+      case 'layout4': return Layout4();
+      case 'layout5': return Layout5();
+      default: return Layout1();
     }
   };
 
