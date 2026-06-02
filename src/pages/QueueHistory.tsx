@@ -4,8 +4,21 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { fetchQueueHistory, QueueHistoryEntry } from "@/lib/queueHistory";
-import { Calendar, Download, TrendingUp, Users, Loader2 } from "lucide-react";
+import { Calendar, Download, TrendingUp, Users, Loader2, FileSpreadsheet, FileText, FileType2 } from "lucide-react";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import logoBank from "@/assets/logo-bankaltimtara.png";
+import { toast } from "sonner";
 
 const RANGE_OPTIONS = [
   { label: "7 hari terakhir", value: 7 },
