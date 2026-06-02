@@ -365,10 +365,30 @@ const QueueHistory = () => {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={downloadCSV} disabled={!history.length}>
-              <Download className="mr-2 h-4 w-4" />
-              CSV
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button disabled={!history.length}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Ekspor Data
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Pilih format</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={downloadPDF}>
+                  <FileText className="mr-2 h-4 w-4 text-red-500" />
+                  PDF (.pdf)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={downloadExcel}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4 text-green-600" />
+                  Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={downloadCSV}>
+                  <FileType2 className="mr-2 h-4 w-4 text-muted-foreground" />
+                  CSV (.csv)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
