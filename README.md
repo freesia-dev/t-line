@@ -1,73 +1,55 @@
-# Welcome to your Lovable project
+# T-Line | Telihan Line
 
-## Project info
+Buatkan website app untuk sistem antrian di Bankaltimtara KCP Telihan. Antrian ini digunakan untuk antrian ke 1 CS dan 1 Teller, sistem antrian terus berjalan dan di reset setiap harinya. 
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Key features:
+- menarik nomor antrian cs dan teller
+- ⁠tampilan ala kiosk
+- ⁠untuk tampilan full costumizable
+- ⁠untuk desain nomor antrian yang tercetak bisa di kostumasi
+- ⁠ukuran cetak di kertas lebar 80mm
+- ⁠sistem reset setiap harinya
+- ⁠buat ketika menekan tombol antrian langsung otomatis print ke printer default tanpa konfirmasi (supaya jedanya gak lama)
 
-## How can I edit this code?
+Menu: 
+- dashboard (isinya tombol antrian cs dan teller)
+- ⁠konfigurasi (isinya mengatur tampilan, mengatur output print
+- ⁠about (isinya tentang deskripsi aplikasi ini dan dibuat oleh siapa (kasih tautan linkedin.com/harisf dan instagram.com/va.ys
 
-There are several ways of editing your application.
+Pastikan website ini berfungsi dengan sangat baik, gunakan konsep UI dan warna yang modern dan profesional. 
 
-**Use Lovable**
+Format default
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+Logo Bankaltimtara
+PT BANK PEMBANGUNAN DAERAH
+KALIMANTAN TIMUR DAN KALIMANTAN UTARA
+KCP KELAS 2 TELIHAN
 
-Changes made via Lovable will be committed automatically to this repo.
+[waktu kunjungan]
+[nomor antrian - cetak besar]
+[sisa antrian]
 
-**Use your preferred IDE**
+Jika nomor anda terlewat mohon untuk mengambil nomor kembali
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+This project was built with [Lovable](https://lovable.dev).
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+**Live app**: https://t-line.lovable.app
 
-Follow these steps:
+## Build with Lovable
+
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/6d9ed43a-e667-49a8-8067-acbeb5324dbc).
+
+- **Ship faster**: describe what you want to build and Lovable handles the code.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+
+## Development
+
+Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
+git clone <this-repository-url>
+cd <repository-name>
 npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
