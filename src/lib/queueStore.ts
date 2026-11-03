@@ -52,7 +52,7 @@ export type InfoPanelType =
   | 'rotate';
 
 export interface TVDisplayConfig {
-  layout: 'layout1' | 'layout2' | 'layout3' | 'layout4' | 'layout5';
+  layout: 'layout1' | 'layout2' | 'layout3' | 'layout4' | 'layout5' | 'layout6';
   showMedia: boolean;
   mediaType: 'image' | 'video';
   mediaUrl: string;

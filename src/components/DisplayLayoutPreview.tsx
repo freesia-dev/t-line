@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 
 interface LayoutPreviewProps {
-  layout: 'layout1' | 'layout2' | 'layout3' | 'layout4' | 'layout5';
+  layout: 'layout1' | 'layout2' | 'layout3' | 'layout4' | 'layout5' | 'layout6';
   isSelected: boolean;
   onClick: () => void;
 }
@@ -73,6 +73,25 @@ const LayoutPreview = ({ layout, isSelected, onClick }: LayoutPreviewProps) => {
             </div>
           </div>
           <div className="h-1/4 bg-emerald-600/40 rounded text-[5px] flex items-center justify-center">DEPOSITO</div>
+        </div>
+      ),
+    },
+    layout6: {
+      name: 'Papan Telihan',
+      description: 'Desain baru: warna logo, motif Dayak, layar panggilan penuh',
+      preview: (
+        <div className="flex flex-col h-full gap-0.5 bg-[#f4f2ed] rounded p-0.5">
+          <div className="flex-1 flex gap-0.5 min-h-0">
+            <div className="flex-[3] flex flex-col gap-0.5">
+              <div className="flex-[3] flex gap-0.5">
+                <div className="flex-1 bg-white rounded text-[5px] text-slate-700 flex items-center justify-center">A001</div>
+                <div className="flex-1 bg-[#4481C0] rounded text-[5px] text-white flex items-center justify-center">B001</div>
+              </div>
+              <div className="flex-[2] bg-white rounded text-[5px] text-slate-500 flex items-center justify-center">BUNGA</div>
+            </div>
+            <div className="flex-[2] bg-[#4481C0]/40 rounded text-[5px] text-slate-700 flex items-center justify-center">MEDIA</div>
+          </div>
+          <div className="h-1.5 bg-[#163453] rounded-sm" />
         </div>
       ),
     },
