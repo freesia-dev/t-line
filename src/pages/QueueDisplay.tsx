@@ -13,6 +13,10 @@ import { toast } from 'sonner';
 import DisplayInfoPanel from '@/components/DisplayInfoPanel';
 import { RatesTable } from '@/components/DisplayInfoPanel';
 import { PiggyBank, TrendingUp, Clock } from 'lucide-react';
+import PapanTelihan, { CallSpotlight } from '@/components/display/PapanTelihan';
+
+// Lama layar panggilan penuh di layout Papan Telihan
+const SPOTLIGHT_MS = 7000;
 
 // Rotating hero card for product rates — shows one product at a time, big & legible.
 const ProductHeroRotator = ({
@@ -143,6 +147,8 @@ const QueueDisplay = () => {
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const [kioskReady, setKioskReady] = useState(false);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [spotlight, setSpotlight] = useState<CallSpotlight | null>(null);
+  const spotlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Ensure announcements never overlap/cancel each other (speechSynthesis.cancel is used internally).
   const announceChainRef = useRef<Promise<void>>(Promise.resolve());
@@ -494,6 +500,15 @@ const QueueDisplay = () => {
           }
         }
         
+        // Layar panggilan penuh (dipakai layout Papan Telihan)
+        if (spotlightTimerRef.current) clearTimeout(spotlightTimerRef.current);
+        setSpotlight({
+          type: newState.last_called_type as 'CS' | 'TELLER',
+          number: newState.last_called_number,
+          key: newState.last_called_at,
+        });
+        spotlightTimerRef.current = setTimeout(() => setSpotlight(null), SPOTLIGHT_MS);
+
         if (newState.last_called_type === 'CS') {
           setFlashCS(true);
           setTimeout(() => setFlashCS(false), 3000);
@@ -520,6 +535,9 @@ const QueueDisplay = () => {
       clearInterval(configInterval);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (spotlightTimerRef.current) {
+        clearTimeout(spotlightTimerRef.current);
       }
     };
    }, [isKioskMode, enqueueAnnouncement]);
@@ -586,6 +604,26 @@ const QueueDisplay = () => {
     month: 'long',
     day: 'numeric',
   });
+
+  if (tvConfig.layout === 'layout6') {
+    return (
+      <PapanTelihan
+        queueState={queueState}
+        tvConfig={tvConfig}
+        bankName={printConfig.bankName}
+        branchName={printConfig.branchName}
+        time={time}
+        date={currentDate}
+        isOnline={isOnline}
+        currentSlide={currentSlide}
+        spotlight={spotlight}
+        soundEnabled={soundEnabled}
+        onToggleSound={() => setSoundEnabled(!soundEnabled)}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={toggleFullscreen}
+      />
+    );
+  }
 
   const csNumber = queueState && queueState.cs_serving > 0 ? formatQueueNumber('CS', queueState.cs_serving) : '---';
   const tellerNumber = queueState && queueState.teller_serving > 0 ? formatQueueNumber('TELLER', queueState.teller_serving) : '---';
